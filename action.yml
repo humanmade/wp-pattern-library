@@ -1,0 +1,51 @@
+name: Build pattern library
+description: Generate a Markdown pattern library, with screenshots, from a WordPress site's registered block patterns.
+
+inputs:
+  site-url:
+    description: Origin of the WordPress site to read patterns from, e.g. https://example.com
+    required: true
+  username:
+    description: WordPress user login holding the view_pattern_library capability.
+    required: true
+  app-password:
+    description: Application password for that user.
+    required: true
+  output-path:
+    description: Directory to write the pattern library into. Overrides the config file.
+    required: false
+    default: ''
+  working-directory:
+    description: Directory containing pattern-library.config.js.
+    required: false
+    default: '.'
+  version:
+    description: Version of @humanmade/wp-pattern-library to run.
+    required: false
+    default: 'latest'
+
+runs:
+  using: composite
+  steps:
+    # Playwright needs a browser. The official container image ships one, so skip
+    # the install when the workflow already runs in it.
+    - name: Install Chromium
+      shell: bash
+      run: |
+        if [ -z "${PLAYWRIGHT_BROWSERS_PATH:-}" ] && [ ! -d "$HOME/.cache/ms-playwright" ]; then
+          npx --yes playwright install --with-deps chromium
+        fi
+
+    - name: Build the pattern library
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        PATTERN_LIBRARY_SITE: ${{ inputs.site-url }}
+        PATTERN_LIBRARY_WP_USER: ${{ inputs.username }}
+        PATTERN_LIBRARY_WP_APP_PASSWORD: ${{ inputs.app-password }}
+      run: |
+        args=""
+        if [ -n "${{ inputs.output-path }}" ]; then
+          args="--output-dir=${{ inputs.output-path }}"
+        fi
+        npx --yes @humanmade/wp-pattern-library@${{ inputs.version }} build $args
