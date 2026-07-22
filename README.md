@@ -182,8 +182,10 @@ of plausible but wrong screenshots:
   API request context, not to page navigation. The route therefore sends a proper
   challenge with its `401`.
 
-As a backstop, the preview shell emits a marker only on the authenticated path,
-and the CLI asserts on it *in the browser* before capturing anything.
+As a backstop, before capturing anything the CLI navigates the browser to the
+manifest URL and requires a `200` — a probe that authenticates through the same
+browser path the captures use, yet cannot be brought down by a single pattern
+that fails to render.
 
 ## Filters
 

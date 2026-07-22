@@ -46,7 +46,7 @@ function render_pattern( string $slug ): void {
 	<meta charset="<?php bloginfo( 'charset' ); ?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="robots" content="noindex, nofollow">
-	<?php // Marker asserted by the CLI before capturing. Only the authenticated path emits it, so its absence means auth silently failed. ?>
+	<?php // Emitted only on the authenticated path, so its presence in a saved page or a browser confirms auth worked. A debugging aid; the CLI probes the manifest URL's status for its pre-capture check. ?>
 	<meta name="pattern-library-preview" content="<?php echo esc_attr( (string) $pattern['name'] ); ?>">
 	<title><?php echo esc_html( (string) ( $pattern['title'] ?? $pattern['name'] ) ); ?> — Pattern Preview</title>
 	<style>html, body { margin: 0; padding: 0; }</style>

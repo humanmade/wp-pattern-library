@@ -66,28 +66,25 @@ async function prepareForCapture( page ) {
  * Confirm the browser context is authenticating, before capturing anything.
  *
  * Playwright and Node's fetch authenticate independently, so a working manifest
- * fetch does not prove the browser is authenticated. An unauthenticated preview
- * returns HTTP 200 with the logged-out page, which would yield a run's worth of
- * plausible-looking but wrong screenshots. The preview shell emits a marker only
- * on the authenticated path; require it.
+ * fetch does not prove the *browser* is authenticated. Probe the manifest URL
+ * with the browser: it returns 200 when authenticated and 401 when not, and —
+ * unlike rendering a pattern — cannot be brought down by one broken pattern, so a
+ * genuine render failure is never misreported as an auth failure.
  *
  * @param {import('playwright').Page} page   Page from the capture context.
  * @param {Object}                    config Resolved configuration.
- * @param {Object}                    sample Any pattern from the manifest.
  */
-async function assertAuthenticated( page, config, sample ) {
-	const url = previewUrl( config, sample.name );
+async function assertAuthenticated( page, config ) {
+	const url = previewUrl( config, '__manifest' );
 	const response = await page.goto( url, { waitUntil: 'domcontentloaded' } );
-	const marker = await page
-		.locator( 'meta[name="pattern-library-preview"]' )
-		.count();
+	const status = response?.status();
 
-	if ( marker === 0 ) {
+	if ( status !== 200 ) {
 		throw new Error(
-			`The browser is not authenticating against ${ url } (HTTP ${ response?.status() }). ` +
+			`The browser is not authenticating against ${ url } (HTTP ${ status }). ` +
 				'Browsers only attach credentials after a 401 carrying WWW-Authenticate, which the preview ' +
-				'route sends — check that the site is running a wp-pattern-library new enough to send it, ' +
-				'and that the credentials are valid for this origin.'
+				'route sends — check that the site runs a wp-pattern-library new enough to send it, and that ' +
+				'the credentials are valid for this origin.'
 		);
 	}
 }
@@ -170,7 +167,7 @@ export async function captureAll( patterns, config, log = () => {} ) {
 
 	try {
 		if ( patterns.length ) {
-			await assertAuthenticated( page, config, patterns[ 0 ] );
+			await assertAuthenticated( page, config );
 		}
 
 		for ( const pattern of patterns ) {
@@ -181,10 +178,22 @@ export async function captureAll( patterns, config, log = () => {} ) {
 
 			try {
 				await page.setViewportSize( { width, height: 1000 } );
-				await page.goto( previewUrl( config, pattern.name, postType ), {
+				const response = await page.goto( previewUrl( config, pattern.name, postType ), {
 					waitUntil: 'networkidle',
 					timeout: config.captureTimeout,
 				} );
+
+				const status = response?.status();
+				if ( status && status >= 400 ) {
+					// The request reached authenticated render code — auth is fine — but
+					// the pattern itself failed to render. Almost always a block or
+					// binding in the pattern that assumes a post context it lacks in
+					// isolation. Surface it as this pattern's failure and move on.
+					throw new Error(
+						`HTTP ${ status } rendering the pattern (likely a block that needs post context; ` +
+							'try postTypeContext, or exclude it).'
+					);
+				}
 				await page.evaluate( () => document.fonts && document.fonts.ready );
 				await prepareForCapture( page );
 				await page.waitForTimeout( 300 );
