@@ -34,6 +34,11 @@ function render_pattern( string $slug ): void {
 	// authenticated, so without this it would render.
 	add_filter( 'show_admin_bar', '__return_false' );
 
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only route, authenticated by the caller.
+	if ( isset( $_GET[ PLACEHOLDER_QUERY_VAR ] ) ) {
+		add_filter( 'post_thumbnail_html', __NAMESPACE__ . '\\placeholder_thumbnail', 10, 5 );
+	}
+
 	status_header( 200 );
 	header( 'Content-Type: text/html; charset=utf-8' );
 
@@ -93,6 +98,51 @@ function find_pattern( string $slug ): ?array {
 	}
 
 	return null;
+}
+
+/**
+ * Substitute a placeholder image when a post has no featured image.
+ *
+ * Query-loop and template patterns that lean on the featured image otherwise
+ * preview with a hole in the layout. Applied only when the capture tool opts in
+ * via PLACEHOLDER_QUERY_VAR, so the route shows real front-end output unless
+ * asked otherwise.
+ *
+ * @param string       $html              Thumbnail markup; empty when the post has none.
+ * @param int          $post_id           Post being rendered.
+ * @param int          $post_thumbnail_id Thumbnail attachment ID; 0 when none.
+ * @param string|int[] $size              Requested image size.
+ * @param string|array $attr              Requested image attributes.
+ * @return string Original markup, or placeholder markup.
+ */
+function placeholder_thumbnail( $html, $post_id, $post_thumbnail_id, $size, $attr ): string {
+	if ( '' !== $html || $post_thumbnail_id ) {
+		return (string) $html;
+	}
+
+	$svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675">'
+		. '<rect width="1200" height="675" fill="#d8dde3"/>'
+		. '<circle cx="510" cy="255" r="45" fill="#aab4bf"/>'
+		. '<path d="M420 460 570 310l120 120 90-90 120 120v55H420Z" fill="#aab4bf"/>'
+		. '</svg>';
+
+	$class = is_array( $attr ) && ! empty( $attr['class'] )
+		? (string) $attr['class']
+		: 'attachment-post-thumbnail';
+
+	$placeholder = sprintf(
+		'<img src="data:image/svg+xml;charset=utf-8,%s" alt="" class="%s" width="1200" height="675" style="width:100%%;height:auto;object-fit:cover;">',
+		rawurlencode( $svg ),
+		esc_attr( $class )
+	);
+
+	/**
+	 * Filters the placeholder markup used for posts without a featured image.
+	 *
+	 * @param string $placeholder Placeholder <img> markup.
+	 * @param int    $post_id     Post being rendered.
+	 */
+	return (string) apply_filters( 'pattern_library_placeholder_image', $placeholder, $post_id );
 }
 
 /**

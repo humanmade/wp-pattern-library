@@ -22,6 +22,10 @@ export function previewUrl( config, slug, postType = '' ) {
 		params.set( 'pattern-library-post-type', postType );
 	}
 
+	if ( '__manifest' !== slug && config.placeholderImages ) {
+		params.set( 'pattern-library-placeholder', '1' );
+	}
+
 	return `${ config.siteUrl }/index.php?${ params.toString() }`;
 }
 

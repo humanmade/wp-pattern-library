@@ -47,6 +47,16 @@ const DEFAULTS = {
 	},
 	postTypeContext: {},
 	classify: flatClassify,
+	// Animation libraries whose finished state is forced before capture: built-in
+	// names or custom { css, settle } objects. See src/animations.mjs.
+	animations: [ 'aos' ],
+	// Extra metadata lines per pattern: { label, value }, where value is a
+	// manifest property name or a function receiving the pattern.
+	extraFields: [],
+	// List configuration-skipped patterns on the index page.
+	includeSkipped: true,
+	// Ask the site to substitute a placeholder featured image for posts without one.
+	placeholderImages: true,
 };
 
 const exists = ( path ) =>

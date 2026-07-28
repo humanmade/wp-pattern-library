@@ -92,6 +92,10 @@ npx pattern-library manifest         # print the filtered manifest as JSON
 Screenshots are written only when their bytes change, so re-running against a
 live site does not churn images whose content merely shifted underneath them.
 
+The run summary flags patterns that rendered empty, failed outright, or
+referenced resources — images, fonts — that no longer exist, so broken previews
+are caught at generation time rather than in review.
+
 ## Configuration reference
 
 | Key               | Default                       | Notes                                                    |
@@ -107,6 +111,10 @@ live site does not churn images whose content merely shifted underneath them.
 | `exclude`         | see below                     | What to leave out of the library.                        |
 | `postTypeContext` | `{}`                          | Basename to post type, for `core/post-template` patterns. |
 | `classify`        | flat                          | Category placement. See below.                            |
+| `animations`      | `[ 'aos' ]`                   | Animation libraries to settle before capture. See below.  |
+| `extraFields`     | `[]`                          | Extra metadata lines per pattern. See below.              |
+| `includeSkipped`  | `true`                        | List excluded patterns, with reasons, on the index page.  |
+| `placeholderImages` | `true`                      | Placeholder featured image for posts that have none.      |
 
 `exclude` defaults to skipping patterns hidden from the inserter and those scoped
 to `wp_template` / `wp_template_part`, since template parts render meaninglessly
@@ -130,6 +138,46 @@ postTypeContext: { 'person-card': 'person' }
 ```
 
 The CLI reports any pattern that rendered empty, so these are easy to find.
+
+### Animation libraries
+
+Scroll-triggered animation libraries hide content until it scrolls into view, so
+a capture must force everything to its finished state first. `animations` lists
+what to settle: built-in library names (currently `aos`), or custom
+`{ css, settle }` objects for project-specific conventions:
+
+```js
+animations: [
+	'aos',
+	{
+		// Optional: CSS injected before capture, overriding the hidden state.
+		css: '.js-reveal { opacity: 1 !important; transform: none !important; }',
+		// Optional: runs in the browser to flip elements to "done". Serialized
+		// into the page, so it must not close over config-file variables.
+		settle: () => {
+			document
+				.querySelectorAll( '.js-reveal' )
+				.forEach( ( el ) => el.classList.add( 'is-revealed' ) );
+		},
+	},
+]
+```
+
+A handler that proves generally useful belongs in `src/animations.mjs` as a new
+built-in, so other projects can list it by name.
+
+### Extra metadata fields
+
+Each pattern's section shows its description, categories, keywords, block types
+and post types by default. `extraFields` appends further lines: `value` is a
+manifest property name, or a function receiving the pattern:
+
+```js
+extraFields: [
+	{ label: 'Source', value: 'source' },
+	{ label: 'Namespace', value: ( pattern ) => pattern.name.split( '/' )[ 0 ] },
+]
+```
 
 ### Grouping categories
 
@@ -194,6 +242,7 @@ that fails to render.
 | `pattern_library_enabled`             | Disable the routes entirely.                          |
 | `pattern_library_namespaces`          | Pattern-name prefixes to expose.                      |
 | `pattern_library_user_can`            | Override the capability check.                        |
+| `pattern_library_placeholder_image`   | Markup of the placeholder featured image.             |
 
 ## Requirements
 

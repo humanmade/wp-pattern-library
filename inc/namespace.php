@@ -20,6 +20,11 @@ const QUERY_VAR = 'pattern-library-preview';
 const POST_TYPE_QUERY_VAR = 'pattern-library-post-type';
 
 /**
+ * Query var opting in to a placeholder featured image for posts without one.
+ */
+const PLACEHOLDER_QUERY_VAR = 'pattern-library-placeholder';
+
+/**
  * Capability required to read the manifest or render a preview.
  */
 const CAPABILITY = 'view_pattern_library';

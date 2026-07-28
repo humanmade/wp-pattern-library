@@ -7,36 +7,25 @@ import sharp from 'sharp';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { previewUrl } from './manifest.mjs';
-
-/**
- * CSS injected before capture.
- *
- * Reduced-motion (set on the context) handles a theme's own animations, but
- * scroll-triggered libraries reveal `[data-aos]` blocks by adding a class only as
- * they scroll into view, and commonly re-hide anything off screen. A tall capture
- * would lose every below-the-fold section, so force the revealed end state.
- */
-const REVEAL_CSS = `
-	[data-aos] {
-		opacity: 1 !important;
-		transform: none !important;
-		transition: none !important;
-	}
-`;
+import { resolveAnimations } from './animations.mjs';
 
 /**
  * Bring a loaded pattern to its finished, fully-painted state.
  *
- * @param {import('playwright').Page} page Loaded preview page.
+ * @param {import('playwright').Page} page       Loaded preview page.
+ * @param {Array}                     animations Resolved animation libraries.
  */
-async function prepareForCapture( page ) {
-	await page.addStyleTag( { content: REVEAL_CSS } );
+async function prepareForCapture( page, animations ) {
+	for ( const library of animations ) {
+		if ( library.css ) {
+			await page.addStyleTag( { content: library.css } );
+		}
+		if ( library.settle ) {
+			await page.evaluate( library.settle );
+		}
+	}
 
 	await page.evaluate( async () => {
-		document
-			.querySelectorAll( '[data-aos]' )
-			.forEach( ( el ) => el.classList.add( 'aos-animate' ) );
-
 		// Walk the full height so intersection- and scroll-triggered content (and
 		// native lazy images) start loading, then return to the top.
 		const step = window.innerHeight || 800;
@@ -135,11 +124,12 @@ async function writeIfChanged( path, bytes ) {
  * @param {Array}    patterns Patterns to capture.
  * @param {Object}   config   Resolved configuration.
  * @param {Function} log      Progress reporter.
- * @return {Promise<{written: number, unchanged: number, empty: string[], failed: Array}>} Summary.
+ * @return {Promise<{written: number, unchanged: number, empty: string[], failed: Array, broken: Array}>} Summary.
  */
 export async function captureAll( patterns, config, log = () => {} ) {
 	await mkdir( config.screenshotsDir, { recursive: true } );
 
+	const animations = resolveAnimations( config.animations );
 	const browser = await chromium.launch();
 	const context = await browser.newContext( {
 		ignoreHTTPSErrors: true,
@@ -163,7 +153,26 @@ export async function captureAll( patterns, config, log = () => {} ) {
 	} );
 
 	const page = await context.newPage();
-	const summary = { written: 0, unchanged: 0, empty: [], failed: [] };
+	const summary = { written: 0, unchanged: 0, empty: [], failed: [], broken: [] };
+
+	// Track subresources that fail to load — a pattern referencing an image that
+	// no longer exists renders "successfully" but previews wrong, so surface it.
+	// The document itself is excluded: its status is handled on the goto response,
+	// and the Basic-auth handshake legitimately answers 401 before retrying.
+	let currentUrl = '';
+	let missingResources = [];
+	page.on( 'response', ( response ) => {
+		if ( response.status() >= 400 && response.url() !== currentUrl ) {
+			missingResources.push( `${ response.url() } (HTTP ${ response.status() })` );
+		}
+	} );
+	page.on( 'requestfailed', ( request ) => {
+		const error = request.failure()?.errorText ?? 'failed';
+		// Navigations abort in-flight requests; that is not a missing resource.
+		if ( error !== 'net::ERR_ABORTED' && request.url() !== currentUrl ) {
+			missingResources.push( `${ request.url() } (${ error })` );
+		}
+	} );
 
 	try {
 		if ( patterns.length ) {
@@ -178,7 +187,9 @@ export async function captureAll( patterns, config, log = () => {} ) {
 
 			try {
 				await page.setViewportSize( { width, height: 1000 } );
-				const response = await page.goto( previewUrl( config, pattern.name, postType ), {
+				currentUrl = previewUrl( config, pattern.name, postType );
+				missingResources = [];
+				const response = await page.goto( currentUrl, {
 					waitUntil: 'networkidle',
 					timeout: config.captureTimeout,
 				} );
@@ -195,7 +206,7 @@ export async function captureAll( patterns, config, log = () => {} ) {
 					);
 				}
 				await page.evaluate( () => document.fonts && document.fonts.ready );
-				await prepareForCapture( page );
+				await prepareForCapture( page, animations );
 				await page.waitForTimeout( 300 );
 
 				const target = page.locator( '#pattern-library-preview' );
@@ -216,10 +227,19 @@ export async function captureAll( patterns, config, log = () => {} ) {
 				const changed = await writeIfChanged( destination, await encode( shot, config ) );
 				summary[ changed ? 'written' : 'unchanged' ] += 1;
 
+				if ( missingResources.length ) {
+					summary.broken.push( {
+						basename: pattern.basename,
+						resources: [ ...new Set( missingResources ) ],
+					} );
+				}
+
 				log(
 					`  ${ changed ? 'write ' : 'same  ' } ${ pattern.basename } (${ width }px, ${
 						box ? Math.round( box.height ) : '?'
-					}px tall)${ isEmpty ? ' — EMPTY' : '' }`
+					}px tall)${ isEmpty ? ' — EMPTY' : '' }${
+						missingResources.length ? ` — ${ missingResources.length } missing resource(s)` : ''
+					}`
 				);
 			} catch ( error ) {
 				summary.failed.push( { basename: pattern.basename, error: error.message } );

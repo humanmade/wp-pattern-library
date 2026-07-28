@@ -122,6 +122,14 @@ async function main() {
 			);
 		}
 
+		if ( summary.broken.length ) {
+			log( '\nMissing resources (referenced but failed to load):' );
+			for ( const item of summary.broken ) {
+				log( `  ${ item.basename }` );
+				item.resources.forEach( ( resource ) => log( `    - ${ resource }` ) );
+			}
+		}
+
 		if ( summary.failed.length ) {
 			log( `Failed: ${ summary.failed.map( ( item ) => item.basename ).join( ', ' ) }` );
 			process.exitCode = 1;
@@ -129,7 +137,7 @@ async function main() {
 	}
 
 	if ( command === 'build' || command === 'generate' ) {
-		const result = await generate( manifest, patterns, config );
+		const result = await generate( manifest, patterns, config, skipped );
 		log( `\nWrote ${ result.index } and ${ result.pages } category pages.` );
 	}
 }

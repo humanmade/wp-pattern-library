@@ -148,12 +148,29 @@ function renderPattern( pattern, shotsRelPath, config, haveShots, labels ) {
 	if ( pattern.keywords.length ) {
 		meta.push( `**Keywords:** ${ pattern.keywords.join( ', ' ) }` );
 	}
+	if ( pattern.blockTypes?.length ) {
+		meta.push( `**Block types:** ${ code( pattern.blockTypes ) }` );
+	}
+	if ( pattern.postTypes?.length ) {
+		meta.push( `**Post types:** ${ code( pattern.postTypes ) }` );
+	}
 	if ( pattern.viewportWidth > 0 ) {
 		meta.push( `**Viewport:** ${ pattern.viewportWidth }px` );
 	}
 	if ( pattern.inserter === false ) {
 		meta.push( '**Inserter:** hidden' );
 	}
+
+	for ( const field of config.extraFields ) {
+		const raw =
+			typeof field.value === 'function' ? field.value( pattern ) : pattern[ field.value ];
+		const value = Array.isArray( raw ) ? raw.join( ', ' ) : raw;
+
+		if ( value ) {
+			meta.push( `**${ field.label }:** ${ value }` );
+		}
+	}
+
 	if ( meta.length ) {
 		lines.push( meta.join( '  \n' ), '' );
 	}
@@ -162,14 +179,23 @@ function renderPattern( pattern, shotsRelPath, config, haveShots, labels ) {
 }
 
 /**
+ * Render a list of technical identifiers as inline code.
+ *
+ * @param {string[]} values Identifiers, e.g. block or post type names.
+ * @return {string} Comma-separated inline code.
+ */
+const code = ( values ) => values.map( ( value ) => `\`${ value }\`` ).join( ', ' );
+
+/**
  * Write every category page and the index.
  *
  * @param {Object} manifest Parsed manifest.
  * @param {Array}  patterns Patterns that survived filtering.
  * @param {Object} config   Resolved configuration.
+ * @param {Array}  skipped  Patterns dropped by filtering, with their reasons.
  * @return {Promise<{pages: number, index: string}>} Summary.
  */
-export async function generate( manifest, patterns, config ) {
+export async function generate( manifest, patterns, config, skipped = [] ) {
 	const pages = buildPages( manifest, patterns, config );
 	const leaders = buildLeaders( pages );
 	const labels = new Map( pages.map( ( page ) => [ page.slug, page.label ] ) );
@@ -222,9 +248,10 @@ export async function generate( manifest, patterns, config ) {
 		);
 
 		const section = ( list ) =>
-			list.map( ( pattern ) =>
-				renderPattern( pattern, shotsRelPath, config, haveShots, labels )
-			);
+			list.flatMap( ( pattern, index ) => [
+				...( index ? [ '---', '' ] : [] ),
+				renderPattern( pattern, shotsRelPath, config, haveShots, labels ),
+			] );
 
 		if ( lead.length ) {
 			out.push( '## Full page references', '' );
@@ -237,7 +264,7 @@ export async function generate( manifest, patterns, config ) {
 		await writeFile( path, `${ out.join( '\n' ).trimEnd() }\n` );
 	}
 
-	await writeIndex( pages, patterns, config );
+	await writeIndex( pages, patterns, config, skipped );
 
 	return { pages: pages.length, index: config.indexFile };
 }
@@ -248,8 +275,9 @@ export async function generate( manifest, patterns, config ) {
  * @param {Array}  pages    Page descriptors.
  * @param {Array}  patterns Patterns that survived filtering.
  * @param {Object} config   Resolved configuration.
+ * @param {Array}  skipped  Patterns dropped by filtering, with their reasons.
  */
-async function writeIndex( pages, patterns, config ) {
+async function writeIndex( pages, patterns, config, skipped ) {
 	await mkdir( dirname( config.indexFile ), { recursive: true } );
 
 	const kinds = [ ...new Set( pages.map( ( page ) => page.kind ) ) ];
@@ -296,6 +324,19 @@ async function writeIndex( pages, patterns, config ) {
 			''
 		);
 		out.push( ...uncategorized.map( ( pattern ) => `- \`${ pattern.name }\`` ), '' );
+	}
+
+	if ( config.includeSkipped && skipped.length ) {
+		out.push(
+			'## Not included',
+			'',
+			'_Registered on the site, but excluded from this library by configuration._',
+			''
+		);
+		out.push(
+			...skipped.map( ( pattern ) => `- \`${ pattern.name }\` — ${ pattern.reason }` ),
+			''
+		);
 	}
 
 	await writeFile( config.indexFile, `${ out.join( '\n' ).trimEnd() }\n` );
