@@ -80,10 +80,11 @@ exactly `read` and `view_pattern_library` — no `edit_posts`, no upload, no
 publish. A service account for taking screenshots should not be able to create
 draft content, which is what reusing `edit_posts` would have required.
 
-Role creation is a WP-CLI command rather than an activation hook because the
-package installs as an mu-plugin on both target platforms, and mu-plugins have no
-activation hooks. On multisite the command must be run per site, since roles are
-stored per blog.
+Role creation is a WP-CLI command rather than an activation hook because
+provisioning also mints an application password, which must be surfaced to an
+operator once and cannot be recovered afterwards. On multisite the command must
+be run per site, since roles are stored per blog — so activation, which fires on
+one site, would provision only that one.
 
 #### The route must opt in to application-password authentication
 
@@ -148,18 +149,24 @@ function in one project's config is smaller than a schema in every project's.
 |-----------------------------------|-----------|-------------------------------------------|
 | `humanmade/wp-pattern-library`    | Packagist | Preview route, capability, WP-CLI command |
 | `@humanmade/wp-pattern-library`   | npm       | CLI: fetch, capture, generate             |
-| `humanmade/wp-pattern-library@v1` | GitHub    | Composite action wrapping the CLI         |
+| `humanmade/wp-pattern-library@vX.Y.Z` | GitHub | Composite action wrapping the CLI      |
 
 They ship from one repository so the manifest contract and its only consumer are
 versioned together; the failure mode of two repositories is an endpoint change
-silently breaking the CLI.
+silently breaking the CLI. One tag drives all three publications, so a version
+number means the same code in every registry.
 
-The composer package declares `"type": "wordpress-muplugin"`. Both target
-platforms already route that type by type rather than by name — Altis to
-`content/mu-plugins/{$name}/`, VIP to `client-mu-plugins/{$name}/` — so it
-installs to the right place on both with no `installer-paths` edit. Each platform
-still needs one line to load it, since mu-plugins in subdirectories are not
-auto-loaded.
+The composer package declares `"type": "wordpress-plugin"`. Both target platforms
+route that type by type rather than by name — Altis to `content/plugins/{$name}/`,
+VIP to `plugins/{$name}/` — so it installs to the right place on both with no
+`installer-paths` edit, and is then activated like any other plugin.
+
+A regular plugin rather than an mu-plugin because nothing here needs to load
+unconditionally on every request: the package is a capture-time tool, and a
+project that has stopped generating a library should be able to deactivate it
+from the admin. mu-plugins cannot be turned off without a deploy, and in
+subdirectories are not even auto-loaded, so they buy a loader edit in every
+consuming project in exchange for a guarantee this package does not need.
 
 ### Screenshots are WebP, and only written when changed
 
@@ -190,3 +197,14 @@ content, so a naive run rewrites dozens of images that are visually identical.
   reproduces the original special case exactly.
 - Build order is C, then B, then A — the outlier last, so its assumptions do not
   get baked into the engine.
+
+## Revisions
+
+**2026-07-31** — The Composer package was originally typed
+`wordpress-muplugin`, carried over from boilerplate rather than chosen. Review of
+the first consuming integration surfaced it: that project wanted the package in
+`plugins/`, and had to add an `installer-paths` override to undo the type. Since
+nothing in the package needs to load on every request, and being deactivatable is
+an advantage for a capture-time tool, the type is now `wordpress-plugin` and the
+override is unnecessary. The "One repository, two published packages" and role
+provisioning sections above reflect the corrected decision.
