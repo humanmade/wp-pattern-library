@@ -6,11 +6,10 @@
  * License: GPL-2.0-or-later
  * Requires PHP: 8.1
  *
- * Installs as an mu-plugin. Because mu-plugins in subdirectories are not
- * auto-loaded, the consuming project must require this file from its own loader:
- *
- *   Altis: add the package to `extra.mu-plugins` in composer.json.
- *   VIP:   require it from `client-mu-plugins/plugin-loader.php`.
+ * Installs as a regular plugin, so the consuming project activates it the same
+ * way it activates any other — through wp-admin, `wp plugin activate`, or the
+ * platform's code-activation helper (`wpcom_vip_load_plugin()` on VIP,
+ * `Altis\Enable_Plugins\load_plugins()` on Altis).
  *
  * @package HM\Pattern_Library
  */

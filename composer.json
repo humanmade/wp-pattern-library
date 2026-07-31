@@ -1,7 +1,7 @@
 {
 	"name": "humanmade/wp-pattern-library",
 	"description": "Serve a manifest and isolated previews of a WordPress site's registered block patterns, so a pattern library can be generated from them.",
-	"type": "wordpress-muplugin",
+	"type": "wordpress-plugin",
 	"license": "GPL-2.0-or-later",
 	"keywords": [ "wordpress", "block-patterns", "documentation", "pattern-library" ],
 	"require": {
