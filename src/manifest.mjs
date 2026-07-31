@@ -77,7 +77,7 @@ export async function fetchManifest( config ) {
 		throw new Error(
 			`Expected JSON from ${ url } but got ${ response.headers.get( 'content-type' ) ?? 'unknown' }. ` +
 				`Response starts: ${ JSON.stringify( body.slice( 0, 200 ) ) }. ` +
-				'Is the wp-pattern-library mu-plugin loaded on this site?'
+				'Is the wp-pattern-library plugin active on this site?'
 		);
 	}
 

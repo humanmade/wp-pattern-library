@@ -2,9 +2,11 @@
 /**
  * WP-CLI commands for provisioning pattern library access.
  *
- * The package installs as an mu-plugin, and mu-plugins have no activation hooks,
- * so the role is created explicitly rather than on load. This also keeps role
- * writes out of the request path entirely.
+ * The role is created by an explicit command rather than an activation hook:
+ * provisioning also mints an application password, which has to be surfaced to
+ * an operator once and cannot be recovered afterwards, and on multisite roles
+ * are stored per site, so activating on one site would provision only that one.
+ * It also keeps role writes out of the request path entirely.
  *
  * @package HM\Pattern_Library
  */

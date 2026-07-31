@@ -35,19 +35,19 @@ jobs:
     runs-on: ubuntu-latest
     # Ships Chromium and its system dependencies preinstalled, which saves a
     # minute or so of apt traffic on every run.
-    container: mcr.microsoft.com/playwright:v1.61.1-noble
+    container: mcr.microsoft.com/playwright:v1.62.1-noble
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.base_branch }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Build the pattern library
-        uses: humanmade/wp-pattern-library@v1
+        uses: humanmade/wp-pattern-library@v0.1.1
         with:
           site-url: ${{ inputs.site_url || vars.PATTERN_LIBRARY_SITE }}
           username: ${{ secrets.PATTERN_LIBRARY_WP_USER }}
@@ -55,7 +55,7 @@ jobs:
           output-path: ${{ inputs.output_path }}
 
       - name: Open a pull request
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           base: ${{ inputs.base_branch }}
           branch: pattern-library/refresh

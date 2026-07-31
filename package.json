@@ -1,11 +1,11 @@
 {
 	"name": "@humanmade/wp-pattern-library",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Generate a Markdown pattern library, with screenshots, from a WordPress site's registered block patterns.",
 	"license": "GPL-2.0-or-later",
 	"type": "module",
 	"engines": {
-		"node": ">=20"
+		"node": ">=24"
 	},
 	"bin": {
 		"pattern-library": "bin/pattern-library.mjs"
@@ -23,10 +23,10 @@
 		"playwright"
 	],
 	"dependencies": {
-		"playwright": "^1.49.0",
-		"sharp": "^0.33.0"
+		"playwright": "^1.62.0",
+		"sharp": "^0.35.0"
 	},
 	"allowScripts": {
-		"sharp@0.33.5": true
+		"sharp@0.35.3": true
 	}
 }

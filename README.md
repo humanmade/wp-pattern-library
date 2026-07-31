@@ -17,21 +17,29 @@ Two packages ship from this repository:
 
 ## Install
 
-### 1. The mu-plugin
+### 1. The plugin
 
-The Composer package declares `"type": "wordpress-muplugin"`, so it installs to
-`content/mu-plugins/` on Altis and `client-mu-plugins/` on WordPress VIP without
-any `installer-paths` change.
+```bash
+composer require humanmade/wp-pattern-library
+```
 
-mu-plugins in subdirectories are not auto-loaded, so require it from your loader:
+The Composer package declares `"type": "wordpress-plugin"`, so `composer/installers`
+routes it to the project's plugin directory — `content/plugins/` on Altis,
+`plugins/` on WordPress VIP — without any `installer-paths` change.
+
+Activate it as you would any other plugin: through wp-admin, `wp plugin activate
+wp-pattern-library`, or your platform's code-activation helper.
 
 ```php
-// Altis: add the package to `extra.mu-plugins` in composer.json, then
-// `composer dump-autoload`.
-
 // VIP: in client-mu-plugins/plugin-loader.php
-require_once WPMU_PLUGIN_DIR . '/wp-pattern-library/plugin.php';
+wpcom_vip_load_plugin( 'wp-pattern-library' );
 ```
+
+It belongs in the deployed environment, not in `require-dev`: the library is
+captured from the running production site, so the route has to be live there.
+What it adds to that site is one front-end route behind a dedicated capability,
+plus a WP-CLI command — no admin UI, no front-end assets, nothing on the
+request path for ordinary visitors.
 
 Limit it to your own patterns, so core and plugin patterns stay out of the
 library:
@@ -246,7 +254,37 @@ that fails to render.
 
 ## Requirements
 
-PHP 8.1+, WordPress 6.0+, Node 20+.
+PHP 8.1+, WordPress 6.0+, Node 24+.
+
+The PHP side runs on the WordPress site; the Node side runs wherever the library
+is generated, which in practice is CI or a developer machine. They do not need to
+be the same host, and the site does not need Node.
+
+## Contributing and releases
+
+Both published packages — the Composer package and the npm package — are built
+from this one repository, from the same tree. There is no separate source for the
+Node CLI: `bin/` and `src/` are what npm publishes, `inc/` and `plugin.php` are
+what Packagist serves, and `action.yml` wraps the npm package for GitHub Actions.
+
+One tag drives all three, so a given version means the same code everywhere:
+
+1. Bump `version` in `package.json`, and the `Version:` header in `plugin.php`.
+   Keep them equal — the plugin header is what shows in wp-admin, and a manifest
+   served by one version being read by another is the failure mode this
+   convention exists to prevent.
+2. Tag the release `vX.Y.Z` and push the tag.
+3. `npm publish --access public` publishes `@humanmade/wp-pattern-library`.
+   Packagist picks up `humanmade/wp-pattern-library` from the same tag via its
+   GitHub hook.
+
+Consuming workflows pin the action to a released tag
+(`humanmade/wp-pattern-library@vX.Y.Z`). There is deliberately no moving `@v1`
+tag while the package is pre-1.0.
+
+The two halves are coupled by the manifest: `inc/manifest.php` produces it and
+`src/manifest.mjs` consumes it. A change to either shape is a change to both, in
+one commit, released under one tag.
 
 ## License
 
