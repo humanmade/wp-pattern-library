@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Pattern Library
  * Description: Serves a manifest and isolated previews of the site's registered block patterns.
- * Version: 0.1.0
+ * Version: 0.1.1
  * License: GPL-2.0-or-later
  * Requires PHP: 8.1
  *
