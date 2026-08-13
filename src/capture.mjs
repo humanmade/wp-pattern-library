@@ -73,7 +73,8 @@ async function assertAuthenticated( page, config ) {
 			`The browser is not authenticating against ${ url } (HTTP ${ status }). ` +
 				'Browsers only attach credentials after a 401 carrying WWW-Authenticate, which the preview ' +
 				'route sends — check that the site runs a wp-pattern-library new enough to send it, and that ' +
-				'the credentials are valid for this origin.'
+				'the credentials are valid for this origin. A 403 or a redirect to a login screen is more ' +
+				'likely an access proxy in front of WordPress — see extraHeaders.'
 		);
 	}
 }
@@ -130,6 +131,7 @@ export async function captureAll( patterns, config, log = () => {} ) {
 	await mkdir( config.screenshotsDir, { recursive: true } );
 
 	const animations = resolveAnimations( config.animations );
+	const origin = new URL( config.siteUrl ).origin;
 	const browser = await chromium.launch();
 	const context = await browser.newContext( {
 		ignoreHTTPSErrors: true,
@@ -148,9 +150,27 @@ export async function captureAll( patterns, config, log = () => {} ) {
 		httpCredentials: {
 			username: config.username,
 			password: config.appPassword,
-			origin: new URL( config.siteUrl ).origin,
+			origin,
 		},
 	} );
+
+	// Access-proxy headers gate the origin ahead of WordPress, so every request the
+	// browser makes to the site needs them — but only to the site. Playwright's
+	// context-level `extraHTTPHeaders` would attach them to third-party requests a
+	// theme makes too (fonts, analytics, CDNs), which for a Cloudflare Access
+	// service token means handing the secret to whoever the theme happens to call.
+	if ( Object.keys( config.extraHeaders ).length ) {
+		await context.route( '**/*', ( route ) => {
+			const request = route.request();
+			const sameOrigin = new URL( request.url() ).origin === origin;
+
+			return route.continue(
+				sameOrigin
+					? { headers: { ...request.headers(), ...config.extraHeaders } }
+					: undefined
+			);
+		} );
+	}
 
 	const page = await context.newPage();
 	const summary = { written: 0, unchanged: 0, empty: [], failed: [], broken: [] };

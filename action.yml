@@ -11,6 +11,12 @@ inputs:
   app-password:
     description: Application password for that user.
     required: true
+  extra-headers:
+    description: >
+      Headers to send with every request to the site, one "Name: value" per line.
+      For origins behind an access proxy, e.g. a Cloudflare Access service token.
+    required: false
+    default: ''
   output-path:
     description: Directory to write the pattern library into. Overrides the config file.
     required: false
@@ -43,6 +49,10 @@ runs:
         PATTERN_LIBRARY_SITE: ${{ inputs.site-url }}
         PATTERN_LIBRARY_WP_USER: ${{ inputs.username }}
         PATTERN_LIBRARY_WP_APP_PASSWORD: ${{ inputs.app-password }}
+        # Passed through the environment, never interpolated into the script: these
+        # carry secrets, and a value with a newline or a quote in it would otherwise
+        # be run as shell.
+        PATTERN_LIBRARY_EXTRA_HEADERS: ${{ inputs.extra-headers }}
       run: |
         args=""
         if [ -n "${{ inputs.output-path }}" ]; then

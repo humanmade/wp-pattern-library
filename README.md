@@ -87,6 +87,9 @@ export PATTERN_LIBRARY_WP_USER="pattern-library-bot"
 export PATTERN_LIBRARY_WP_APP_PASSWORD="xxxx xxxx xxxx xxxx"
 ```
 
+Sites behind an access proxy also need its headers — see
+[Sites behind an access proxy](#sites-behind-an-access-proxy).
+
 ## Usage
 
 ```bash
@@ -123,6 +126,7 @@ are caught at generation time rather than in review.
 | `extraFields`     | `[]`                          | Extra metadata lines per pattern. See below.              |
 | `includeSkipped`  | `true`                        | List excluded patterns, with reasons, on the index page.  |
 | `placeholderImages` | `true`                      | Placeholder featured image for posts that have none.      |
+| `extraHeaders`    | `{}`                          | Headers sent with every request to the site. See below.   |
 
 `exclude` defaults to skipping patterns hidden from the inserter and those scoped
 to `wp_template` / `wp_template_part`, since template parts render meaninglessly
@@ -220,7 +224,10 @@ branch and output path, and opens a pull request with the refreshed docs.
 Capture from **production**. Screenshots reflect deployed code, so a pattern that
 exists only on the branch being documented renders as "preview pending" until it
 ships. Staging environments sitting behind their own HTTP Basic gate cannot be
-used: two `Authorization: Basic` headers cannot coexist on one request.
+used: two `Authorization: Basic` headers cannot coexist on one request. Gates
+that use headers rather than Basic — Cloudflare Access, say — are supported
+through `extra-headers`; see
+[Sites behind an access proxy](#sites-behind-an-access-proxy).
 
 ## How authentication works
 
@@ -242,6 +249,37 @@ As a backstop, before capturing anything the CLI navigates the browser to the
 manifest URL and requires a `200` — a probe that authenticates through the same
 browser path the captures use, yet cannot be brought down by a single pattern
 that fails to render.
+
+## Sites behind an access proxy
+
+An origin fronted by Cloudflare Access, or anything like it, answers before
+WordPress does: the manifest request comes back as an HTML login page rather than
+JSON, and no application password will help, because the request never reached
+WordPress.
+
+`extraHeaders` sends the proxy's credentials alongside the application password.
+Values are secrets, so they belong in the environment, as one `Name: value` per
+line:
+
+```bash
+export PATTERN_LIBRARY_EXTRA_HEADERS="CF-Access-Client-Id: <id>.access
+CF-Access-Client-Secret: <secret>"
+```
+
+Config-file headers, if a project has non-secret ones, merge underneath:
+
+```js
+extraHeaders: { 'X-Environment': 'production' },
+```
+
+The headers are attached to Node's manifest request and to every browser request
+made **to the site's own origin**. They are deliberately withheld from
+third-party requests a theme makes — fonts, analytics, CDNs — so a service token
+is never handed to a host that merely happens to be referenced by a pattern.
+
+This is the supported way to capture from a gated environment. An origin behind
+HTTP Basic still is not: two `Authorization: Basic` headers cannot coexist on one
+request, and the application password needs that header.
 
 ## Filters
 
