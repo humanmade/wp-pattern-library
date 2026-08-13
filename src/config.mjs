@@ -57,6 +57,10 @@ const DEFAULTS = {
 	includeSkipped: true,
 	// Ask the site to substitute a placeholder featured image for posts without one.
 	placeholderImages: true,
+	// Headers sent with every request to the site, for origins behind an access
+	// proxy such as Cloudflare Access. Secrets belong in the environment; see
+	// PATTERN_LIBRARY_EXTRA_HEADERS.
+	extraHeaders: {},
 };
 
 const exists = ( path ) =>
@@ -103,6 +107,12 @@ export async function loadConfig( cwd = process.cwd(), overrides = {} ) {
 		exclude: { ...DEFAULTS.exclude, ...( fileConfig.exclude ?? {} ) },
 		...fromEnv,
 		...clean( overrides ),
+		// Merged rather than replaced: a project may name non-secret headers in its
+		// config file while the values that are secret arrive from the environment.
+		extraHeaders: {
+			...( fileConfig.extraHeaders ?? {} ),
+			...parseHeaders( process.env.PATTERN_LIBRARY_EXTRA_HEADERS ),
+		},
 		configPath,
 	};
 
@@ -116,6 +126,49 @@ export async function loadConfig( cwd = process.cwd(), overrides = {} ) {
 		: join( config.outputDir, 'README.md' );
 
 	return config;
+}
+
+/**
+ * Parse newline-delimited `Name: value` header lines.
+ *
+ * The environment carries headers as text because that is what a CI secret is:
+ * one string, often several headers long. Values may contain colons, so only the
+ * first one separates the name.
+ *
+ * @param {string|undefined} value Raw header block.
+ * @return {Object} Header name to value.
+ */
+function parseHeaders( value ) {
+	const headers = {};
+
+	for ( const line of ( value ?? '' ).split( '\n' ) ) {
+		const trimmed = line.trim();
+
+		if ( ! trimmed ) {
+			continue;
+		}
+
+		const separator = trimmed.indexOf( ':' );
+
+		if ( separator < 1 ) {
+			throw new Error(
+				`PATTERN_LIBRARY_EXTRA_HEADERS lines must read "Name: value"; got ${ JSON.stringify(
+					trimmed.slice( 0, 40 )
+				) }.`
+			);
+		}
+
+		const headerValue = trimmed.slice( separator + 1 ).trim();
+
+		// A workflow composing this block from CI secrets leaves a bare "Name:"
+		// behind when a secret is unset. Treat that as "no header" rather than
+		// sending an empty one.
+		if ( headerValue ) {
+			headers[ trimmed.slice( 0, separator ).trim() ] = headerValue;
+		}
+	}
+
+	return headers;
 }
 
 /**
