@@ -39,6 +39,9 @@ const DEFAULTS = {
 	imageFormat: 'webp',
 	imageQuality: 80,
 	defaultViewport: 1440,
+	// Upper bound on capture width. A pattern declaring a wider `Viewport Width`
+	// is captured at this instead; null leaves every declared width alone.
+	maxViewport: null,
 	captureTimeout: 30000,
 	exclude: {
 		inserterHidden: true,
@@ -56,6 +59,8 @@ const DEFAULTS = {
 	// Additional captures of each pattern, taken inside a group-block wrapper:
 	// { slug, label, wrapper, appliesTo }. See normalizeVariants().
 	variants: [],
+	// Caption shown above a pattern's plain capture when it also has variants.
+	baseLabel: 'Default rendering',
 	// List configuration-skipped patterns on the index page.
 	includeSkipped: true,
 	// Ask the site to substitute a placeholder featured image for posts without one.

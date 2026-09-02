@@ -61,7 +61,8 @@ function render_pattern( string $slug ): void {
 </head>
 <body class="pattern-library-preview">
 	<div class="wp-site-blocks">
-		<main class="wp-block-group" id="<?php echo esc_attr( CONTAINER_ID ); ?>">
+		<?php // alignfull: themes commonly cap a bare child of .wp-site-blocks at the global content size, which would crop every capture to that width whatever the viewport. The preview container stands in for the page itself, so it spans the viewport and lets each pattern decide its own width. ?>
+		<main class="wp-block-group alignfull" id="<?php echo esc_attr( CONTAINER_ID ); ?>">
 			<?php
 			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- rendered output of markup already registered on this site.
 			echo $content;
@@ -174,10 +175,11 @@ const WRAPPER_ATTRIBUTES = [ 'className', 'align', 'backgroundColor', 'gradient'
  * Two things make this a real group block rather than a plain div. Block-level
  * stylesheets registered with `wp_enqueue_block_style()` load only when their
  * block renders, so a pattern containing no group of its own would otherwise be
- * captured without the very CSS the wrapper style lives in. And the presentation
- * classes have to be written out in full: core applies block supports server-side
- * only to dynamic blocks, so a static group keeps whatever classes its saved
- * markup carries and no more.
+ * captured without the very CSS the wrapper style lives in. And the colour
+ * classes have to be written out in full: core applies the colour supports
+ * server-side only to dynamic blocks, so a static group keeps whatever classes
+ * its saved markup carries. Layout is the exception — it resolves through a
+ * `render_block` filter that runs for static blocks too.
  *
  * @param string $pattern_content Pattern markup, already given any post context.
  * @return string Markup, wrapped when a valid wrapper was requested.

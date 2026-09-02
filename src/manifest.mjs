@@ -109,6 +109,24 @@ export async function fetchManifest( config ) {
 }
 
 /**
+ * The viewport width a pattern is captured at.
+ *
+ * A pattern's declared Viewport Width wins when it is narrower — that is the
+ * pattern saying it is designed for a small frame. `maxViewport` caps the other
+ * direction, so one pattern declaring a wide viewport cannot force a capture
+ * wider than the library's own frame.
+ *
+ * @param {Object} pattern Manifest pattern entry.
+ * @param {Object} config  Resolved configuration.
+ * @return {number} Width in CSS pixels.
+ */
+export function captureWidth( pattern, config ) {
+	const declared = pattern.viewportWidth > 0 ? pattern.viewportWidth : config.defaultViewport;
+
+	return config.maxViewport ? Math.min( declared, config.maxViewport ) : declared;
+}
+
+/**
  * The captures to take of one pattern: the pattern itself, then its variants.
  *
  * @param {Object} pattern Manifest pattern entry.

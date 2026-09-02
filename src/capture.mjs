@@ -6,7 +6,7 @@ import { chromium } from 'playwright';
 import sharp from 'sharp';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { previewUrl, shotsFor } from './manifest.mjs';
+import { captureWidth, previewUrl, shotsFor } from './manifest.mjs';
 import { resolveAnimations } from './animations.mjs';
 
 /**
@@ -200,7 +200,7 @@ export async function captureAll( patterns, config, log = () => {} ) {
 		}
 
 		for ( const pattern of patterns ) {
-			const width = pattern.viewportWidth > 0 ? pattern.viewportWidth : config.defaultViewport;
+			const width = captureWidth( pattern, config );
 			const postType = config.postTypeContext[ pattern.basename ] ?? '';
 
 			// The plain capture and each variant are separate page loads: the
