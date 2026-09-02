@@ -13,13 +13,18 @@ const SUPPORTED_MANIFEST_VERSION = 1;
  * @param {Object} config   Resolved configuration.
  * @param {string} slug     Pattern name, or `__manifest`.
  * @param {string} postType Optional post type to give the pattern query context.
+ * @param {Object} wrapper  Optional group block attributes to wrap the pattern in.
  * @return {string} Absolute URL.
  */
-export function previewUrl( config, slug, postType = '' ) {
+export function previewUrl( config, slug, postType = '', wrapper = null ) {
 	const params = new URLSearchParams( { 'pattern-library-preview': slug } );
 
 	if ( postType ) {
 		params.set( 'pattern-library-post-type', postType );
+	}
+
+	if ( wrapper ) {
+		params.set( 'pattern-library-wrapper', JSON.stringify( wrapper ) );
 	}
 
 	if ( '__manifest' !== slug && config.placeholderImages ) {
@@ -89,7 +94,37 @@ export async function fetchManifest( config ) {
 		);
 	}
 
+	// Optional features are advertised rather than versioned, so this is the only
+	// place a site too old for what the config asks for gets caught. Left
+	// unchecked, the site would ignore the wrapper query var and every variant
+	// would capture as a duplicate of the pattern it varies.
+	if ( config.variants.length && ! manifest.features?.includes( 'variants' ) ) {
+		throw new Error(
+			'This config declares `variants`, but the site does not support them. Update the ' +
+				'wp-pattern-library plugin on the site to a version that advertises the "variants" feature.'
+		);
+	}
+
 	return manifest;
+}
+
+/**
+ * The captures to take of one pattern: the pattern itself, then its variants.
+ *
+ * @param {Object} pattern Manifest pattern entry.
+ * @param {Object} config  Resolved configuration.
+ * @return {Array<{basename: string, variant: Object|null}>} Captures, plain one first.
+ */
+export function shotsFor( pattern, config ) {
+	return [
+		{ basename: pattern.basename, variant: null },
+		...config.variants
+			.filter( ( variant ) => variant.appliesTo( pattern ) )
+			.map( ( variant ) => ( {
+				basename: `${ pattern.basename }--${ variant.slug }`,
+				variant,
+			} ) ),
+	];
 }
 
 /**

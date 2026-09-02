@@ -5,6 +5,7 @@
 import { mkdir, writeFile, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
+import { shotsFor } from './manifest.mjs';
 
 const exists = ( path ) =>
 	access( path, constants.F_OK )
@@ -126,11 +127,25 @@ function buildLeaders( pages ) {
 function renderPattern( pattern, shotsRelPath, config, haveShots, labels ) {
 	const lines = [ `### ${ pattern.title }`, '', `\`${ pattern.name }\``, '' ];
 
-	if ( haveShots.has( pattern.basename ) ) {
-		const file = `${ pattern.basename }.${ config.imageFormat }`;
-		lines.push( `![${ pattern.title }](${ shotsRelPath }/${ file })`, '' );
-	} else {
-		lines.push( '_Preview pending._', '' );
+	// The plain capture leads; each variant that produced an image follows it
+	// under its own label, so the treatments read as one pattern rather than as
+	// unrelated entries.
+	for ( const shot of shotsFor( pattern, config ) ) {
+		if ( ! haveShots.has( shot.basename ) ) {
+			if ( ! shot.variant ) {
+				lines.push( '_Preview pending._', '' );
+			}
+			continue;
+		}
+
+		const file = `${ shot.basename }.${ config.imageFormat }`;
+		const label = shot.variant ? `${ pattern.title } — ${ shot.variant.label }` : pattern.title;
+
+		if ( shot.variant ) {
+			lines.push( `_${ shot.variant.label }_`, '' );
+		}
+
+		lines.push( `![${ label }](${ shotsRelPath }/${ file })`, '' );
 	}
 
 	if ( pattern.description ) {
@@ -202,15 +217,17 @@ export async function generate( manifest, patterns, config, skipped = [] ) {
 
 	const haveShots = new Set();
 	await Promise.all(
-		patterns.map( async ( pattern ) => {
-			const file = join(
-				config.screenshotsDir,
-				`${ pattern.basename }.${ config.imageFormat }`
-			);
-			if ( await exists( file ) ) {
-				haveShots.add( pattern.basename );
-			}
-		} )
+		patterns
+			.flatMap( ( pattern ) => shotsFor( pattern, config ) )
+			.map( async ( shot ) => {
+				const file = join(
+					config.screenshotsDir,
+					`${ shot.basename }.${ config.imageFormat }`
+				);
+				if ( await exists( file ) ) {
+					haveShots.add( shot.basename );
+				}
+			} )
 	);
 
 	for ( const page of pages ) {

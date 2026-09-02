@@ -16,6 +16,18 @@ namespace HM\Pattern_Library;
 const MANIFEST_VERSION = 1;
 
 /**
+ * Optional route capabilities this plugin version supports.
+ *
+ * Additive, so it does not move MANIFEST_VERSION: a CLI old enough not to know a
+ * feature simply never asks for it. What this buys is the other direction — a CLI
+ * configured to use a feature can say plainly that the *site* is too old, rather
+ * than silently capturing something that is not what was asked for.
+ *
+ * @var string[]
+ */
+const MANIFEST_FEATURES = [ 'variants' ];
+
+/**
  * Emit the manifest as JSON and exit.
  */
 function render_manifest(): void {
@@ -42,6 +54,7 @@ function render_manifest(): void {
 	wp_send_json(
 		[
 			'manifestVersion' => MANIFEST_VERSION,
+			'features'        => MANIFEST_FEATURES,
 			'site'            => [
 				'name' => get_bloginfo( 'name' ),
 				'url'  => home_url( '/' ),

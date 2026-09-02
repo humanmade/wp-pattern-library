@@ -1,6 +1,6 @@
 {
 	"name": "@humanmade/wp-pattern-library",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"description": "Generate a Markdown pattern library, with screenshots, from a WordPress site's registered block patterns.",
 	"license": "GPL-2.0-or-later",
 	"type": "module",

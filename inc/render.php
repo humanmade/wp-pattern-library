@@ -42,7 +42,9 @@ function render_pattern( string $slug ): void {
 	status_header( 200 );
 	header( 'Content-Type: text/html; charset=utf-8' );
 
-	$content = do_blocks( with_optional_post_context( $pattern, (string) $pattern['content'] ) );
+	$content = do_blocks(
+		with_optional_wrapper( with_optional_post_context( $pattern, (string) $pattern['content'] ) )
+	);
 
 	?>
 <!DOCTYPE html>
@@ -143,6 +145,179 @@ function placeholder_thumbnail( $html, $post_id, $post_thumbnail_id, $size, $att
 	 * @param int    $post_id     Post being rendered.
 	 */
 	return (string) apply_filters( 'pattern_library_placeholder_image', $placeholder, $post_id );
+}
+
+/**
+ * Group-block attributes a variant wrapper may set.
+ *
+ * Deliberately narrow: a wrapper exists to put a pattern on a different ground —
+ * a section style, a colour, a gradient, the layout that ground sits in — so the
+ * vocabulary stops at what a section group needs. Anything outside this list is
+ * dropped rather than passed through, so a config typo cannot quietly become a
+ * block attribute nobody meant to set.
+ *
+ * `style` and `layout` are objects handed to core untouched: the style engine
+ * resolves one into inline CSS, and the layout support resolves the other into
+ * classes and container CSS while the pattern renders. The rest are scalars this
+ * file has to turn into presentation classes itself — see wrapper_markup().
+ */
+const WRAPPER_ATTRIBUTES = [ 'className', 'align', 'backgroundColor', 'gradient', 'textColor', 'style', 'layout' ];
+
+/**
+ * Optionally wrap a pattern in a group block, for a variant capture.
+ *
+ * The capture tool asks for the same pattern twice: once bare, and once inside
+ * the wrapper a project names in its config — typically a section style such as
+ * `is-style-dark` over a dark ground. The wrapper is built here rather than sent
+ * as markup so the URL carries data, not HTML.
+ *
+ * Two things make this a real group block rather than a plain div. Block-level
+ * stylesheets registered with `wp_enqueue_block_style()` load only when their
+ * block renders, so a pattern containing no group of its own would otherwise be
+ * captured without the very CSS the wrapper style lives in. And the presentation
+ * classes have to be written out in full: core applies block supports server-side
+ * only to dynamic blocks, so a static group keeps whatever classes its saved
+ * markup carries and no more.
+ *
+ * @param string $pattern_content Pattern markup, already given any post context.
+ * @return string Markup, wrapped when a valid wrapper was requested.
+ */
+function with_optional_wrapper( string $pattern_content ): string {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only route, authenticated by the caller.
+	if ( ! isset( $_GET[ WRAPPER_QUERY_VAR ] ) ) {
+		return $pattern_content;
+	}
+
+	// Not sanitize_text_field(): the value is a JSON document, and json_decode()
+	// is the validation that matters. Anything that does not decode to an object
+	// is discarded below.
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only route, authenticated by the caller; validated by json_decode() below.
+	$decoded = json_decode( wp_unslash( (string) $_GET[ WRAPPER_QUERY_VAR ] ), true );
+
+	if ( ! is_array( $decoded ) || empty( $decoded ) ) {
+		return $pattern_content;
+	}
+
+	$attributes = array_intersect_key( $decoded, array_flip( WRAPPER_ATTRIBUTES ) );
+
+	if ( empty( $attributes ) ) {
+		return $pattern_content;
+	}
+
+	[ $open, $close ] = wrapper_markup( $attributes );
+
+	return $open . $pattern_content . $close;
+}
+
+/**
+ * Sanitize one class name.
+ *
+ * A named wrapper for sanitize_html_class(), so it can be passed to array_map()
+ * inside a namespace without the callable resolving to the global function.
+ *
+ * @param string $class Candidate class name.
+ * @return string Sanitized class name.
+ */
+function sanitize_class( string $class ): string {
+	return sanitize_html_class( $class );
+}
+
+/**
+ * Build the opening and closing markup of a variant wrapper.
+ *
+ * @param array $attributes Group attributes, already reduced to WRAPPER_ATTRIBUTES.
+ * @return array{0: string, 1: string} Opening and closing markup.
+ */
+function wrapper_markup( array $attributes ): array {
+	$classes = [ 'wp-block-group' ];
+
+	// Sanitize into a parallel array rather than reading the raw input twice: the
+	// block comment and the div have to describe the same block, so the comment is
+	// serialized from the sanitized values too.
+	$clean = [];
+
+	if ( ! empty( $attributes['align'] ) && is_string( $attributes['align'] ) ) {
+		$clean['align'] = sanitize_html_class( $attributes['align'] );
+		$classes[]      = 'align' . $clean['align'];
+	}
+
+	if ( ! empty( $attributes['className'] ) && is_string( $attributes['className'] ) ) {
+		$names = array_filter(
+			array_map( __NAMESPACE__ . '\\sanitize_class', preg_split( '/\s+/', $attributes['className'] ) ?: [] )
+		);
+		$clean['className'] = implode( ' ', $names );
+		$classes            = array_merge( $classes, $names );
+	}
+
+	if ( ! empty( $attributes['textColor'] ) && is_string( $attributes['textColor'] ) ) {
+		$clean['textColor'] = sanitize_html_class( $attributes['textColor'] );
+		$classes[]          = sprintf( 'has-%s-color', $clean['textColor'] );
+		$classes[]          = 'has-text-color';
+	}
+
+	if ( ! empty( $attributes['backgroundColor'] ) && is_string( $attributes['backgroundColor'] ) ) {
+		$clean['backgroundColor'] = sanitize_html_class( $attributes['backgroundColor'] );
+		$classes[]                = sprintf( 'has-%s-background-color', $clean['backgroundColor'] );
+		$classes[]                = 'has-background';
+	}
+
+	if ( ! empty( $attributes['gradient'] ) && is_string( $attributes['gradient'] ) ) {
+		$clean['gradient'] = sanitize_html_class( $attributes['gradient'] );
+		$classes[]         = sprintf( 'has-%s-gradient-background', $clean['gradient'] );
+		$classes[]         = 'has-background';
+	}
+
+	if ( ! empty( $attributes['layout'] ) && is_array( $attributes['layout'] ) ) {
+		// Layout is resolved by core's layout support during the render, which
+		// applies to a statically serialized block too: it adds the is-layout-*
+		// classes to this tag and collects any container CSS into the style
+		// engine. render_pattern() runs do_blocks() before wp_head(), so that CSS
+		// is in the store by the time the document prints it.
+		$clean['layout'] = $attributes['layout'];
+	}
+
+	$style = '';
+	if ( ! empty( $attributes['style'] ) && is_array( $attributes['style'] ) ) {
+		$clean['style'] = $attributes['style'];
+
+		// The style engine filters its return, dropping `css` entirely when nothing
+		// it understands was asked for. The WordPress stubs describe the key as
+		// always present, so static analysis calls this guard redundant; core does
+		// not agree, and a missing-key warning here would break the render.
+		$style = (string) ( wp_style_engine_get_styles( $attributes['style'] )['css'] ?? '' );
+	}
+
+	$open = sprintf(
+		'<!-- wp:group %s --><div class="%s"%s>',
+		// JSON_HEX_TAG so no attribute value can carry an angle bracket into the
+		// block comment and close it early.
+		(string) wp_json_encode( $clean, JSON_HEX_TAG ),
+		esc_attr( implode( ' ', array_unique( array_filter( $classes ) ) ) ),
+		'' === $style ? '' : sprintf( ' style="%s"', esc_attr( $style ) )
+	);
+
+	/**
+	 * Filters the opening markup of a variant wrapper.
+	 *
+	 * The built-in wrapper covers the presentational attributes of a section
+	 * group. A theme whose section treatment needs more than that — a nested
+	 * wrapper, or a layout — can replace the opening markup here, and match it
+	 * with `pattern_library_wrapper_close`.
+	 *
+	 * @param string $open       Opening markup, block comment included.
+	 * @param array  $attributes Requested wrapper attributes.
+	 */
+	$open = (string) apply_filters( 'pattern_library_wrapper_open', $open, $attributes );
+
+	/**
+	 * Filters the closing markup of a variant wrapper.
+	 *
+	 * @param string $close      Closing markup, block comment included.
+	 * @param array  $attributes Requested wrapper attributes.
+	 */
+	$close = (string) apply_filters( 'pattern_library_wrapper_close', '</div><!-- /wp:group -->', $attributes );
+
+	return [ $open, $close ];
 }
 
 /**

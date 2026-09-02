@@ -124,6 +124,7 @@ are caught at generation time rather than in review.
 | `classify`        | flat                          | Category placement. See below.                            |
 | `animations`      | `[ 'aos' ]`                   | Animation libraries to settle before capture. See below.  |
 | `extraFields`     | `[]`                          | Extra metadata lines per pattern. See below.              |
+| `variants`        | `[]`                          | Extra captures inside a wrapper. See below.               |
 | `includeSkipped`  | `true`                        | List excluded patterns, with reasons, on the index page.  |
 | `placeholderImages` | `true`                      | Placeholder featured image for posts that have none.      |
 | `extraHeaders`    | `{}`                          | Headers sent with every request to the site. See below.   |
@@ -190,6 +191,55 @@ extraFields: [
 	{ label: 'Namespace', value: ( pattern ) => pattern.name.split( '/' )[ 0 ] },
 ]
 ```
+
+### Variants
+
+A theme whose patterns are built to work on more than one ground — the same
+section used plain, and again inside a dark wrapper — can document both without
+duplicating the patterns. Each entry in `variants` captures every pattern it
+applies to a second time, rendered inside a `core/group` block carrying the
+attributes in `wrapper`:
+
+```js
+variants: [
+	{
+		slug: 'dark',
+		label: 'Dark section',
+		wrapper: { className: 'is-style-dark', backgroundColor: 'shark' },
+		appliesTo: ( pattern ) => ! pattern.categories.includes( 'my-theme/pages' ),
+	},
+]
+```
+
+| Key         | Required | Purpose                                                             |
+|-------------|----------|---------------------------------------------------------------------|
+| `slug`      | yes      | Kebab-case. Becomes the `--slug` filename suffix.                    |
+| `wrapper`   | yes      | Group block attributes. See the accepted attributes below.           |
+| `label`     | no       | Caption above the image. Defaults to a title-cased `slug`.           |
+| `appliesTo` | no       | Predicate receiving the manifest pattern. Defaults to every pattern. |
+
+`wrapper` accepts `className`, `align`, `backgroundColor`, `gradient`,
+`textColor`, `style` and `layout` — the attributes of a section group. Anything
+else is dropped, so a typo cannot quietly become an attribute nobody meant to
+set. The site builds the block from them, so what travels in the URL is data,
+never markup. A theme whose section treatment needs more can replace the markup
+through `pattern_library_wrapper_open` and `pattern_library_wrapper_close`.
+
+The wrapper is a real group block rather than a class added in the browser,
+because block stylesheets registered with `wp_enqueue_block_style()` load only
+when their block actually renders — a pattern containing no group of its own
+would otherwise be captured without the stylesheet the wrapper's style lives in.
+Its colour classes are written out in full by the site, because core applies the
+colour supports server-side only to dynamic blocks; `layout` needs no such help,
+being resolved by a `render_block` filter that runs for static blocks too.
+
+Use `appliesTo` deliberately. A variant doubles the captures, the capture time
+and the committed images for every pattern it covers, and some patterns have no
+second treatment worth showing — a whole-page reference already contains its own
+sections.
+
+Variants need a site running a plugin version that advertises the feature; an
+older one is reported as an error rather than silently capturing duplicates.
 
 ### Grouping categories
 
@@ -289,6 +339,8 @@ request, and the application password needs that header.
 | `pattern_library_namespaces`          | Pattern-name prefixes to expose.                      |
 | `pattern_library_user_can`            | Override the capability check.                        |
 | `pattern_library_placeholder_image`   | Markup of the placeholder featured image.             |
+| `pattern_library_wrapper_open`        | Opening markup of a variant wrapper.                  |
+| `pattern_library_wrapper_close`       | Closing markup of a variant wrapper.                  |
 
 ## Requirements
 
