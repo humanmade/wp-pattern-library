@@ -53,6 +53,11 @@ const DEFAULTS = {
 	// Extra metadata lines per pattern: { label, value }, where value is a
 	// manifest property name or a function receiving the pattern.
 	extraFields: [],
+	// Additional captures of each pattern, taken inside a group-block wrapper:
+	// { slug, label, wrapper, appliesTo }. See normalizeVariants().
+	variants: [],
+	// Caption shown above a pattern's plain capture when it also has variants.
+	baseLabel: 'Default rendering',
 	// List configuration-skipped patterns on the index page.
 	includeSkipped: true,
 	// Ask the site to substitute a placeholder featured image for posts without one.
@@ -116,6 +121,8 @@ export async function loadConfig( cwd = process.cwd(), overrides = {} ) {
 		configPath,
 	};
 
+	config.variants = normalizeVariants( config.variants );
+
 	config.siteUrl = config.siteUrl.replace( /\/$/, '' );
 	config.outputDir = absolute( config.outputDir, cwd );
 	config.screenshotsDir = config.screenshotsDir
@@ -127,6 +134,82 @@ export async function loadConfig( cwd = process.cwd(), overrides = {} ) {
 
 	return config;
 }
+
+/**
+ * Validate and complete the configured variants.
+ *
+ * A variant is one extra capture of every pattern it applies to, taken inside a
+ * group block carrying `wrapper`'s attributes — the way a project's section
+ * styles are applied to a pattern in real use. The site builds that wrapper; see
+ * WRAPPER_ATTRIBUTES in the plugin for the attributes it accepts.
+ *
+ * `appliesTo` is what keeps a variant affordable. Every variant doubles the
+ * captures — and the committed images — for the patterns it covers, and some
+ * patterns have no meaningful variant to show: a whole-page reference already
+ * carries its own sections.
+ *
+ * @param {Array} variants Configured variants.
+ * @return {Array} Variants with defaults applied.
+ */
+function normalizeVariants( variants ) {
+	if ( ! Array.isArray( variants ) ) {
+		throw new Error( 'Configuration error: `variants` must be an array.' );
+	}
+
+	const seen = new Set();
+
+	return variants.map( ( variant, index ) => {
+		const where = `variants[${ index }]`;
+
+		// The slug becomes a filename suffix, so it has to survive a round trip
+		// through the filesystem and a Markdown link unaltered.
+		if ( ! /^[a-z0-9]+(-[a-z0-9]+)*$/.test( variant?.slug ?? '' ) ) {
+			throw new Error(
+				`Configuration error: ${ where }.slug must be a lowercase kebab-case string; got ${ JSON.stringify(
+					variant?.slug
+				) }.`
+			);
+		}
+
+		if ( seen.has( variant.slug ) ) {
+			throw new Error( `Configuration error: duplicate variant slug "${ variant.slug }".` );
+		}
+		seen.add( variant.slug );
+
+		if (
+			! variant.wrapper ||
+			typeof variant.wrapper !== 'object' ||
+			Array.isArray( variant.wrapper ) ||
+			! Object.keys( variant.wrapper ).length
+		) {
+			throw new Error(
+				`Configuration error: ${ where }.wrapper must be a non-empty object of group block attributes.`
+			);
+		}
+
+		if ( variant.appliesTo !== undefined && typeof variant.appliesTo !== 'function' ) {
+			throw new Error( `Configuration error: ${ where }.appliesTo must be a function.` );
+		}
+
+		return {
+			slug: variant.slug,
+			label: variant.label ?? titleCase( variant.slug ),
+			wrapper: variant.wrapper,
+			appliesTo: variant.appliesTo ?? ( () => true ),
+		};
+	} );
+}
+
+/**
+ * Turn a kebab-case slug into a display label.
+ *
+ * @param {string} slug Variant slug.
+ * @return {string} Label.
+ */
+const titleCase = ( slug ) =>
+	slug.replace( /(^|-)([a-z])/g, ( _, separator, letter ) =>
+		( separator ? ' ' : '' ) + letter.toUpperCase()
+	);
 
 /**
  * Parse newline-delimited `Name: value` header lines.

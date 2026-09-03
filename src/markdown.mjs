@@ -5,6 +5,7 @@
 import { mkdir, writeFile, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
+import { shotsFor } from './manifest.mjs';
 
 const exists = ( path ) =>
 	access( path, constants.F_OK )
@@ -126,11 +127,29 @@ function buildLeaders( pages ) {
 function renderPattern( pattern, shotsRelPath, config, haveShots, labels ) {
 	const lines = [ `### ${ pattern.title }`, '', `\`${ pattern.name }\``, '' ];
 
-	if ( haveShots.has( pattern.basename ) ) {
-		const file = `${ pattern.basename }.${ config.imageFormat }`;
-		lines.push( `![${ pattern.title }](${ shotsRelPath }/${ file })`, '' );
-	} else {
+	// The plain capture leads; each variant that produced an image follows it
+	// under its own label, so the treatments read as one pattern rather than as
+	// unrelated entries. Captions appear only when there is something to tell
+	// apart — a pattern with no variant needs no label on its only image.
+	const shots = shotsFor( pattern, config ).filter( ( shot ) =>
+		haveShots.has( shot.basename )
+	);
+	const captioned = shots.length > 1;
+
+	if ( ! shots.length ) {
 		lines.push( '_Preview pending._', '' );
+	}
+
+	for ( const shot of shots ) {
+		const file = `${ shot.basename }.${ config.imageFormat }`;
+		const caption = shot.variant ? shot.variant.label : config.baseLabel;
+		const alt = captioned ? `${ pattern.title } — ${ caption }` : pattern.title;
+
+		if ( captioned ) {
+			lines.push( `_${ caption }_`, '' );
+		}
+
+		lines.push( `![${ alt }](${ shotsRelPath }/${ file })`, '' );
 	}
 
 	if ( pattern.description ) {
@@ -202,15 +221,17 @@ export async function generate( manifest, patterns, config, skipped = [] ) {
 
 	const haveShots = new Set();
 	await Promise.all(
-		patterns.map( async ( pattern ) => {
-			const file = join(
-				config.screenshotsDir,
-				`${ pattern.basename }.${ config.imageFormat }`
-			);
-			if ( await exists( file ) ) {
-				haveShots.add( pattern.basename );
-			}
-		} )
+		patterns
+			.flatMap( ( pattern ) => shotsFor( pattern, config ) )
+			.map( async ( shot ) => {
+				const file = join(
+					config.screenshotsDir,
+					`${ shot.basename }.${ config.imageFormat }`
+				);
+				if ( await exists( file ) ) {
+					haveShots.add( shot.basename );
+				}
+			} )
 	);
 
 	for ( const page of pages ) {

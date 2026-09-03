@@ -12,7 +12,7 @@
  */
 
 import { loadConfig, requireConfig } from '../src/config.mjs';
-import { fetchManifest, filterPatterns } from '../src/manifest.mjs';
+import { fetchManifest, filterPatterns, shotsFor } from '../src/manifest.mjs';
 import { captureAll } from '../src/capture.mjs';
 import { generate } from '../src/markdown.mjs';
 
@@ -89,6 +89,18 @@ async function main() {
 	log(
 		`${ patterns.length } patterns in the library, ${ skipped.length } skipped, ${ targets.length } targeted.`
 	);
+
+	if ( config.variants.length ) {
+		const shots = targets.reduce(
+			( total, pattern ) => total + shotsFor( pattern, config ).length,
+			0
+		);
+		log(
+			`${ config.variants
+				.map( ( variant ) => variant.label )
+				.join( ', ' ) } variant(s) configured — ${ shots } captures for ${ targets.length } patterns.`
+		);
+	}
 
 	if ( skipped.length ) {
 		const reasons = skipped.reduce( ( counts, pattern ) => {

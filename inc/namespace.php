@@ -25,6 +25,15 @@ const POST_TYPE_QUERY_VAR = 'pattern-library-post-type';
 const PLACEHOLDER_QUERY_VAR = 'pattern-library-placeholder';
 
 /**
+ * Query var carrying JSON group-block attributes to wrap the pattern in.
+ *
+ * Lets one pattern be captured more than once — plain, and again inside the
+ * section wrapper a theme uses to give it a different treatment. See
+ * with_optional_wrapper().
+ */
+const WRAPPER_QUERY_VAR = 'pattern-library-wrapper';
+
+/**
  * Capability required to read the manifest or render a preview.
  */
 const CAPABILITY = 'view_pattern_library';

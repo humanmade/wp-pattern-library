@@ -6,7 +6,7 @@ import { chromium } from 'playwright';
 import sharp from 'sharp';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { previewUrl } from './manifest.mjs';
+import { previewUrl, shotsFor } from './manifest.mjs';
 import { resolveAnimations } from './animations.mjs';
 
 /**
@@ -200,70 +200,78 @@ export async function captureAll( patterns, config, log = () => {} ) {
 		}
 
 		for ( const pattern of patterns ) {
-			const filename = `${ pattern.basename }.${ config.imageFormat }`;
-			const destination = join( config.screenshotsDir, filename );
 			const width = pattern.viewportWidth > 0 ? pattern.viewportWidth : config.defaultViewport;
 			const postType = config.postTypeContext[ pattern.basename ] ?? '';
 
-			try {
-				await page.setViewportSize( { width, height: 1000 } );
-				currentUrl = previewUrl( config, pattern.name, postType );
-				missingResources = [];
-				const response = await page.goto( currentUrl, {
-					waitUntil: 'networkidle',
-					timeout: config.captureTimeout,
-				} );
-
-				const status = response?.status();
-				if ( status && status >= 400 ) {
-					// The request reached authenticated render code — auth is fine — but
-					// the pattern itself failed to render. Almost always a block or
-					// binding in the pattern that assumes a post context it lacks in
-					// isolation. Surface it as this pattern's failure and move on.
-					throw new Error(
-						`HTTP ${ status } rendering the pattern (likely a block that needs post context; ` +
-							'try postTypeContext, or exclude it).'
-					);
-				}
-				await page.evaluate( () => document.fonts && document.fonts.ready );
-				await prepareForCapture( page, animations );
-				await page.waitForTimeout( 300 );
-
-				const target = page.locator( '#pattern-library-preview' );
-				const box = await target.boundingBox();
-				const isEmpty = ! box || box.height < 8;
-
-				if ( isEmpty ) {
-					// A dynamic pattern that renders nothing in isolation, e.g. a query
-					// loop with no matching posts. Capture the viewport so the gap is
-					// visible in review, and flag it.
-					summary.empty.push( pattern.basename );
-				}
-
-				const shot = isEmpty
-					? await page.screenshot()
-					: await target.screenshot();
-
-				const changed = await writeIfChanged( destination, await encode( shot, config ) );
-				summary[ changed ? 'written' : 'unchanged' ] += 1;
-
-				if ( missingResources.length ) {
-					summary.broken.push( {
-						basename: pattern.basename,
-						resources: [ ...new Set( missingResources ) ],
-					} );
-				}
-
-				log(
-					`  ${ changed ? 'write ' : 'same  ' } ${ pattern.basename } (${ width }px, ${
-						box ? Math.round( box.height ) : '?'
-					}px tall)${ isEmpty ? ' — EMPTY' : '' }${
-						missingResources.length ? ` — ${ missingResources.length } missing resource(s)` : ''
-					}`
+			// The plain capture and each variant are separate page loads: the
+			// wrapper is applied server-side, so the pattern has to be rendered
+			// again inside it rather than adjusted in the browser.
+			for ( const shot of shotsFor( pattern, config ) ) {
+				const destination = join(
+					config.screenshotsDir,
+					`${ shot.basename }.${ config.imageFormat }`
 				);
-			} catch ( error ) {
-				summary.failed.push( { basename: pattern.basename, error: error.message } );
-				log( `  FAIL   ${ pattern.basename } — ${ error.message }` );
+
+				try {
+					await page.setViewportSize( { width, height: 1000 } );
+					currentUrl = previewUrl( config, pattern.name, postType, shot.variant?.wrapper );
+					missingResources = [];
+					const response = await page.goto( currentUrl, {
+						waitUntil: 'networkidle',
+						timeout: config.captureTimeout,
+					} );
+
+					const status = response?.status();
+					if ( status && status >= 400 ) {
+						// The request reached authenticated render code — auth is fine — but
+						// the pattern itself failed to render. Almost always a block or
+						// binding in the pattern that assumes a post context it lacks in
+						// isolation. Surface it as this pattern's failure and move on.
+						throw new Error(
+							`HTTP ${ status } rendering the pattern (likely a block that needs post context; ` +
+								'try postTypeContext, or exclude it).'
+						);
+					}
+					await page.evaluate( () => document.fonts && document.fonts.ready );
+					await prepareForCapture( page, animations );
+					await page.waitForTimeout( 300 );
+
+					const target = page.locator( '#pattern-library-preview' );
+					const box = await target.boundingBox();
+					const isEmpty = ! box || box.height < 8;
+
+					if ( isEmpty ) {
+						// A dynamic pattern that renders nothing in isolation, e.g. a query
+						// loop with no matching posts. Capture the viewport so the gap is
+						// visible in review, and flag it.
+						summary.empty.push( shot.basename );
+					}
+
+					const image = isEmpty
+						? await page.screenshot()
+						: await target.screenshot();
+
+					const changed = await writeIfChanged( destination, await encode( image, config ) );
+					summary[ changed ? 'written' : 'unchanged' ] += 1;
+
+					if ( missingResources.length ) {
+						summary.broken.push( {
+							basename: shot.basename,
+							resources: [ ...new Set( missingResources ) ],
+						} );
+					}
+
+					log(
+						`  ${ changed ? 'write ' : 'same  ' } ${ shot.basename } (${ width }px, ${
+							box ? Math.round( box.height ) : '?'
+						}px tall)${ isEmpty ? ' — EMPTY' : '' }${
+							missingResources.length ? ` — ${ missingResources.length } missing resource(s)` : ''
+						}`
+					);
+				} catch ( error ) {
+					summary.failed.push( { basename: shot.basename, error: error.message } );
+					log( `  FAIL   ${ shot.basename } — ${ error.message }` );
+				}
 			}
 		}
 	} finally {
