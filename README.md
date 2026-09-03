@@ -125,6 +125,7 @@ are caught at generation time rather than in review.
 | `animations`      | `[ 'aos' ]`                   | Animation libraries to settle before capture. See below.  |
 | `extraFields`     | `[]`                          | Extra metadata lines per pattern. See below.              |
 | `variants`        | `[]`                          | Extra captures inside a wrapper. See below.               |
+| `baseLabel`       | `Default rendering`           | Caption on the plain capture of a pattern that has variants. |
 | `includeSkipped`  | `true`                        | List excluded patterns, with reasons, on the index page.  |
 | `placeholderImages` | `true`                      | Placeholder featured image for posts that have none.      |
 | `extraHeaders`    | `{}`                          | Headers sent with every request to the site. See below.   |
@@ -237,6 +238,10 @@ Use `appliesTo` deliberately. A variant doubles the captures, the capture time
 and the committed images for every pattern it covers, and some patterns have no
 second treatment worth showing — a whole-page reference already contains its own
 sections.
+
+When a pattern has at least one variant image, every image in its section gets a
+caption — the variant's `label`, and `baseLabel` for the plain capture. A pattern
+with no variants keeps its single uncaptioned image.
 
 Variants need a site running a plugin version that advertises the feature; an
 older one is reported as an error rather than silently capturing duplicates.

@@ -129,23 +129,27 @@ function renderPattern( pattern, shotsRelPath, config, haveShots, labels ) {
 
 	// The plain capture leads; each variant that produced an image follows it
 	// under its own label, so the treatments read as one pattern rather than as
-	// unrelated entries.
-	for ( const shot of shotsFor( pattern, config ) ) {
-		if ( ! haveShots.has( shot.basename ) ) {
-			if ( ! shot.variant ) {
-				lines.push( '_Preview pending._', '' );
-			}
-			continue;
-		}
+	// unrelated entries. Captions appear only when there is something to tell
+	// apart — a pattern with no variant needs no label on its only image.
+	const shots = shotsFor( pattern, config ).filter( ( shot ) =>
+		haveShots.has( shot.basename )
+	);
+	const captioned = shots.length > 1;
 
+	if ( ! shots.length ) {
+		lines.push( '_Preview pending._', '' );
+	}
+
+	for ( const shot of shots ) {
 		const file = `${ shot.basename }.${ config.imageFormat }`;
-		const label = shot.variant ? `${ pattern.title } — ${ shot.variant.label }` : pattern.title;
+		const caption = shot.variant ? shot.variant.label : config.baseLabel;
+		const alt = captioned ? `${ pattern.title } — ${ caption }` : pattern.title;
 
-		if ( shot.variant ) {
-			lines.push( `_${ shot.variant.label }_`, '' );
+		if ( captioned ) {
+			lines.push( `_${ caption }_`, '' );
 		}
 
-		lines.push( `![${ label }](${ shotsRelPath }/${ file })`, '' );
+		lines.push( `![${ alt }](${ shotsRelPath }/${ file })`, '' );
 	}
 
 	if ( pattern.description ) {

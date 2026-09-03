@@ -56,6 +56,8 @@ const DEFAULTS = {
 	// Additional captures of each pattern, taken inside a group-block wrapper:
 	// { slug, label, wrapper, appliesTo }. See normalizeVariants().
 	variants: [],
+	// Caption shown above a pattern's plain capture when it also has variants.
+	baseLabel: 'Default rendering',
 	// List configuration-skipped patterns on the index page.
 	includeSkipped: true,
 	// Ask the site to substitute a placeholder featured image for posts without one.
