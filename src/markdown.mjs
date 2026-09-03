@@ -142,7 +142,7 @@ function renderPattern( pattern, shotsRelPath, config, haveShots, labels ) {
 
 	for ( const shot of shots ) {
 		const file = `${ shot.basename }.${ config.imageFormat }`;
-		const caption = shot.variant ? shot.variant.label : config.baseLabel;
+		const caption = shot?.variant?.label || config.baseLabel;
 		const alt = captioned ? `${ pattern.title } — ${ caption }` : pattern.title;
 
 		if ( captioned ) {
