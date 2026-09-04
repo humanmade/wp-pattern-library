@@ -2,3 +2,22 @@ node_modules/
 vendor/
 .DS_Store
 *.log
+
+# PHPUnit
+.phpunit.result.cache
+.phpunit.cache/
+
+# Jekyll build output for the documentation site
+docs/_site/
+docs/.jekyll-cache/
+docs/.jekyll-metadata
+docs/Gemfile.lock
+
+# Local wp-env overrides
+.wp-env.override.json
+
+# Playwright MCP scratch output
+.playwright-mcp/
+
+# Local bundler configuration for the docs site
+docs/.bundle/

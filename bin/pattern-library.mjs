@@ -61,7 +61,7 @@ async function main() {
 
 	if ( ! COMMANDS.includes( command ) ) {
 		throw new Error(
-			`Unknown command "${ command }". Expected one of: ${ COMMANDS.join( ', ' ) }.`
+			`Unknown command "${ command }". Expected one of: ${ COMMANDS.join( ', ' ) }.`,
 		);
 	}
 
@@ -79,26 +79,24 @@ async function main() {
 		return;
 	}
 
-	const targets = filters.length
-		? patterns.filter( ( pattern ) =>
-				filters.some( ( filter ) => pattern.basename.includes( filter ) )
-		  )
-		: patterns;
+	const matches = ( pattern ) =>
+		filters.some( ( filter ) => pattern.basename.includes( filter ) );
+	const targets = filters.length ? patterns.filter( matches ) : patterns;
 
 	log( `${ manifest.site.name } — ${ config.siteUrl }` );
 	log(
-		`${ patterns.length } patterns in the library, ${ skipped.length } skipped, ${ targets.length } targeted.`
+		`${ patterns.length } patterns in the library, ${ skipped.length } skipped, ${ targets.length } targeted.`,
 	);
 
 	if ( config.variants.length ) {
 		const shots = targets.reduce(
 			( total, pattern ) => total + shotsFor( pattern, config ).length,
-			0
+			0,
 		);
 		log(
 			`${ config.variants
 				.map( ( variant ) => variant.label )
-				.join( ', ' ) } variant(s) configured — ${ shots } captures for ${ targets.length } patterns.`
+				.join( ', ' ) } variant(s) configured — ${ shots } captures for ${ targets.length } patterns.`,
 		);
 	}
 
@@ -110,7 +108,7 @@ async function main() {
 		log(
 			`Skipped: ${ Object.entries( reasons )
 				.map( ( [ reason, count ] ) => `${ count } ${ reason }` )
-				.join( ', ' ) }.`
+				.join( ', ' ) }.`,
 		);
 	}
 
@@ -125,12 +123,12 @@ async function main() {
 
 		log(
 			`\n${ summary.written } written, ${ summary.unchanged } unchanged, ` +
-				`${ summary.empty.length } empty, ${ summary.failed.length } failed.`
+				`${ summary.empty.length } empty, ${ summary.failed.length } failed.`,
 		);
 
 		if ( summary.empty.length ) {
 			log(
-				`Rendered empty (need post context or a live query): ${ summary.empty.join( ', ' ) }`
+				`Rendered empty (need post context or a live query): ${ summary.empty.join( ', ' ) }`,
 			);
 		}
 
