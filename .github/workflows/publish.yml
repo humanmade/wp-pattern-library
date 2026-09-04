@@ -1,0 +1,65 @@
+# Publish the npm package when a release is published.
+#
+# Packagist needs nothing here: it picks `humanmade/wp-pattern-library` up from
+# the same tag through its GitHub hook. This workflow covers the other half of
+# the pair, so one tag really does mean the same code in both registries.
+#
+# Requires an NPM_TOKEN repository secret — an automation token for an account
+# that can publish to the @humanmade scope.
+
+name: Publish to npm
+
+on:
+  release:
+    types: [ published ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # Required by `npm publish --provenance`, which signs the published tarball
+  # with an attestation tying it back to this workflow run and commit.
+  id-token: write
+
+jobs:
+  npm:
+    name: npm publish
+    runs-on: ubuntu-latest
+    environment: npm
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.release.tag_name || github.ref }}
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - run: npm ci
+
+      # Publishing is irreversible, so the gate that CI applies to every pull
+      # request is applied once more against the actual tag being released.
+      - name: The tag, package.json and plugin.php agree
+        run: |
+          set -euo pipefail
+
+          tag="${{ github.event.release.tag_name }}"
+          npm_version="$(node -p "require('./package.json').version")"
+          plugin_version="$(sed -n 's/^ \* Version: *//p' plugin.php | head -1 | tr -d '[:space:]')"
+
+          if [ -n "${tag}" ] && [ "${tag#v}" != "${npm_version}" ]; then
+            echo "::error::Tag ${tag} does not match package.json ${npm_version}."
+            exit 1
+          fi
+
+          if [ "${plugin_version}" != "${npm_version}" ]; then
+            echo "::error::plugin.php ${plugin_version} does not match package.json ${npm_version}."
+            exit 1
+          fi
+
+      - name: Publish
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
