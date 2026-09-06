@@ -1,0 +1,36 @@
+title: WP Pattern Library
+tagline: A browsable, screenshotted pattern library generated from the patterns your theme already registers.
+description: Generate a Markdown pattern library, with screenshots, from a WordPress site's registered block patterns — from your local environment or from production.
+author: Human Made
+baseurl: '/wp-pattern-library'
+url: 'https://humanmade.github.io'
+
+theme: just-the-hm-docs
+
+plugins:
+  - jekyll-include-cache
+
+aux_links:
+  "WP Pattern Library on GitHub":
+    - https://github.com/humanmade/wp-pattern-library
+
+nav_external_links:
+  - title: GitHub source
+    url: https://github.com/humanmade/wp-pattern-library
+  - title: Issues
+    url: https://github.com/humanmade/wp-pattern-library/issues
+
+# Callout styles. Theme colours are defined by just-the-hm-docs; the callout
+# names have to be declared here, because a Jekyll theme's own _config.yml is
+# not inherited by the sites that use it.
+callouts_level: quiet
+callouts:
+  note:
+    title: Note
+    color: hm-blue-callout
+  warning:
+    title: Warning
+    color: hm-red-callout
+  important:
+    title: Important
+    color: hm-purple-callout
