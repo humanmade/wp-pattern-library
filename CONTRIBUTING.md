@@ -1,7 +1,7 @@
 # Contributing
 
 Thanks for looking. This is a small package with a fairly unusual shape — two
-languages, three published artefacts, one repository — so this document is
+languages, three published artifacts, one repository — so this document is
 mostly about the things that are not obvious from reading the code.
 
 - [What lives where](#what-lives-where)
@@ -29,9 +29,9 @@ docs/architecture/  ADRs — why things are the way they are
 examples/           A workflow consuming projects can copy
 ```
 
-Three artefacts ship from this one tree, from the same tag:
+Three artifacts ship from this one tree, from the same tag:
 
-| Artefact | Built from | Published to |
+| Artifact | Built from | Published to |
 |---|---|---|
 | `humanmade/wp-pattern-library` | `plugin.php`, `inc/` | Packagist |
 | `@humanmade/wp-pattern-library` | `bin/`, `src/` | npm |
@@ -241,7 +241,7 @@ matter. Keep the two in step.
 
 ## Releasing
 
-Releases are cut from `main`. One tag drives all three artefacts, so the
+Releases are cut from `main`. One tag drives all three artifacts, so the
 versions have to agree before the tag exists.
 
 1. **Bump the version in two places, in one commit:** `version` in

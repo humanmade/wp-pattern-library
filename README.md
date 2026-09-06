@@ -12,7 +12,7 @@ Generate a browsable Markdown pattern library — with screenshots — from a Wo
 
 A block theme of any size is going to end up with dozens or hundreds of patterns. That is a design system, and it has the design system problem: the names live in `patterns/*.php`, the appearance lives in the block inserter behind a login, and neither is somewhere you can point at.
 
-This generates the missing artefact. The site serves a manifest of its registered patterns and renders each one in isolation; a Node CLI captures them with Playwright and writes an index plus one page per category. The result is Markdown and images you commit — so it renders on GitHub, it is searchable, and when a pattern's appearance changes, the changed screenshot shows up in review.
+This generates the missing artifact. The site serves a manifest of its registered patterns and renders each one in isolation; a Node CLI captures them with Playwright and writes an index plus one page per category. The result is Markdown and images you commit — so it renders on GitHub, it is searchable, and when a pattern's appearance changes, the changed screenshot shows up in review.
 
 It works against your local environment or a live site. A GitHub Action can run the whole thing and open a pull request with the refreshed docs.
 
