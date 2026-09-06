@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<ruleset name="WP Pattern Library">
+	<description>Coding standards for the WordPress half of the pattern library generator.</description>
+
+	<rule ref="HM-Minimum" />
+
+	<file>.</file>
+
+	<exclude-pattern>/vendor/*</exclude-pattern>
+	<exclude-pattern>/node_modules/*</exclude-pattern>
+
+	<arg name="extensions" value="php" />
+	<arg name="basepath" value="." />
+	<arg name="parallel" value="8" />
+	<arg name="colors" />
+	<arg value="sp" />
+</ruleset>

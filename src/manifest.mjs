@@ -42,7 +42,7 @@ export function previewUrl( config, slug, postType = '', wrapper = null ) {
  */
 export function authHeader( config ) {
 	const encoded = Buffer.from(
-		`${ config.username }:${ config.appPassword }`
+		`${ config.username }:${ config.appPassword }`,
 	).toString( 'base64' );
 
 	return `Basic ${ encoded }`;
@@ -67,7 +67,7 @@ export async function fetchManifest( config ) {
 		throw new Error(
 			`Authentication failed (HTTP ${ response.status }) for ${ config.username } at ${ url }. ` +
 				'Check the application password, and that the user holds the view_pattern_library capability ' +
-				'on this site (roles are per-site on multisite).'
+				'on this site (roles are per-site on multisite).',
 		);
 	}
 
@@ -83,14 +83,14 @@ export async function fetchManifest( config ) {
 			`Expected JSON from ${ url } but got ${ response.headers.get( 'content-type' ) ?? 'unknown' }. ` +
 				`Response starts: ${ JSON.stringify( body.slice( 0, 200 ) ) }. ` +
 				'Is the wp-pattern-library plugin active on this site? An HTML login page here ' +
-				'usually means an access proxy answered instead of WordPress — see extraHeaders.'
+				'usually means an access proxy answered instead of WordPress — see extraHeaders.',
 		);
 	}
 
 	if ( manifest.manifestVersion !== SUPPORTED_MANIFEST_VERSION ) {
 		throw new Error(
 			`Manifest version ${ manifest.manifestVersion } is not supported (expected ` +
-				`${ SUPPORTED_MANIFEST_VERSION }). Update the wp-pattern-library package on the site or in this project.`
+				`${ SUPPORTED_MANIFEST_VERSION }). Update the wp-pattern-library package on the site or in this project.`,
 		);
 	}
 
@@ -101,7 +101,7 @@ export async function fetchManifest( config ) {
 	if ( config.variants.length && ! manifest.features?.includes( 'variants' ) ) {
 		throw new Error(
 			'This config declares `variants`, but the site does not support them. Update the ' +
-				'wp-pattern-library plugin on the site to a version that advertises the "variants" feature.'
+				'wp-pattern-library plugin on the site to a version that advertises the "variants" feature.',
 		);
 	}
 
@@ -181,7 +181,7 @@ function exclusionReason( pattern, namespaces, exclude ) {
 	}
 
 	const blockedPostTypes = ( exclude.postTypes ?? [] ).filter( ( postType ) =>
-		pattern.postTypes?.includes( postType )
+		pattern.postTypes?.includes( postType ),
 	);
 	if ( blockedPostTypes.length ) {
 		return `scoped to ${ blockedPostTypes.join( ', ' ) }`;

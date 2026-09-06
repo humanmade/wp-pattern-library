@@ -1,0 +1,22 @@
+includes:
+	- vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+	level: 5
+	paths:
+		- plugin.php
+		- inc
+	bootstrapFiles:
+		- vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
+		- vendor/php-stubs/wp-cli-stubs/wp-cli-stubs.php
+	scanDirectories:
+		- vendor/php-stubs
+	ignoreErrors:
+		# wp_style_engine_get_styles() builds its return array key by key and ends
+		# on array_filter(), so `css` is absent whenever nothing it understood was
+		# asked for. wordpress-stubs types the key as always present; core (see
+		# wp-includes/style-engine.php) does not agree, and dropping the guard
+		# would turn an unstyled wrapper into a fatal. Scoped to the one call.
+		-
+			identifier: nullCoalesce.offset
+			path: inc/render.php

@@ -51,8 +51,8 @@ export function resolveAnimations( animations ) {
 		if ( ! LIBRARIES[ entry ] ) {
 			throw new Error(
 				`Unknown animation library "${ entry }" in config. Built in: ${ Object.keys(
-					LIBRARIES
-				).join( ', ' ) }. Pass an object ({ css, settle }) for a custom library.`
+					LIBRARIES,
+				).join( ', ' ) }. Pass an object ({ css, settle }) for a custom library.`,
 			);
 		}
 

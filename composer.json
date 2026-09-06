@@ -3,24 +3,36 @@
 	"description": "Serve a manifest and isolated previews of a WordPress site's registered block patterns, so a pattern library can be generated from them.",
 	"type": "wordpress-plugin",
 	"license": "GPL-2.0-or-later",
-	"keywords": [ "wordpress", "block-patterns", "documentation", "pattern-library" ],
+	"keywords": [
+		"wordpress",
+		"block-patterns",
+		"documentation",
+		"pattern-library"
+	],
 	"require": {
 		"php": ">=8.1"
 	},
 	"require-dev": {
 		"humanmade/coding-standards": "^1.2",
 		"php-stubs/wordpress-stubs": "^6.7",
-		"phpstan/phpstan": "^1.11",
-		"szepeviktor/phpstan-wordpress": "^1.3"
+		"phpstan/phpstan": "^2.2",
+		"szepeviktor/phpstan-wordpress": "^2.0",
+		"php-stubs/wp-cli-stubs": "^2.12",
+		"phpunit/phpunit": "^9.6",
+		"yoast/phpunit-polyfills": "^2.0"
 	},
 	"config": {
 		"allow-plugins": {
 			"dealerdirect/phpcodesniffer-composer-installer": true
+		},
+		"platform": {
+			"php": "8.1"
 		}
 	},
 	"scripts": {
 		"lint": "phpcs",
 		"lint:fix": "phpcbf",
-		"analyze": "phpstan analyse"
+		"analyze": "phpstan analyse",
+		"test": "phpunit"
 	}
 }

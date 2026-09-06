@@ -1,0 +1,93 @@
+# Cut a release: tag the target branch, then publish a GitHub release from it.
+#
+# Publishing to npm and Packagist is handled by publish.yml, which runs when the
+# release this workflow creates is published.
+#
+# NOTE: this duplicates the "Tag and Release" workflow copied into ~23 Human Made
+# plugin repositories. It is being centralized as a reusable workflow in
+# humanmade/hm-github-actions (PR #21). Once that has merged and been tagged, the
+# body of this file should collapse to a call:
+#
+#   jobs:
+#     tag_and_release:
+#       permissions:
+#         contents: write
+#       uses: humanmade/hm-github-actions/.github/workflows/tag-and-release.yml@<sha> # vX.Y.Z
+#       with:
+#         version: ${{ inputs.version }}
+#         target_branch: ${{ inputs.target_branch }}
+#
+# It is kept self-contained until then so the release path works today.
+
+name: Tag and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag, e.g. v0.4.0. Must match package.json and plugin.php.'
+        required: true
+      target_branch:
+        description: 'Branch to tag.'
+        default: main
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  tag_and_release:
+    name: Tag and Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.target_branch }}
+          fetch-depth: 0
+
+      # One tag drives the Composer package, the npm package and the action, so
+      # they have to agree before the tag exists — afterwards it is too late.
+      - name: Check the tag is new and the versions agree
+        run: |
+          set -euo pipefail
+
+          version="${{ inputs.version }}"
+
+          if [ -z "${version##v*}" ]; then
+            bare="${version#v}"
+          else
+            echo "::error::Version must be tag-shaped, e.g. v0.4.0; got ${version}."
+            exit 1
+          fi
+
+          if git ls-remote --tags --exit-code origin "refs/tags/${version}" >/dev/null 2>&1; then
+            echo "::error::Tag ${version} already exists."
+            exit 1
+          fi
+
+          npm_version="$(node -p "require('./package.json').version")"
+          plugin_version="$(sed -n 's/^ \* Version: *//p' plugin.php | head -1 | tr -d '[:space:]')"
+
+          if [ "${npm_version}" != "${bare}" ] || [ "${plugin_version}" != "${bare}" ]; then
+            echo "::error::Version mismatch. Tag ${version}, package.json ${npm_version}, plugin.php ${plugin_version}."
+            exit 1
+          fi
+
+      - name: Create and push the tag
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ inputs.version }}"
+          git push origin "${{ inputs.version }}"
+
+      - name: Create the GitHub release
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
+        with:
+          tag: ${{ inputs.version }}
+          name: ${{ inputs.version }}
+          generateReleaseNotes: true
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}

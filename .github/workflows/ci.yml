@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  php:
+    name: PHP ${{ matrix.php }} — lint, analyse
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The floor is what composer.json requires; the ceiling is what a current
+        # Altis or VIP environment actually runs.
+        php: [ '8.1', '8.4' ]
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        uses: ramsey/composer-install@65e4f84970763564f46a70b8a54b90d033b3bdda # 4.0.0
+
+      - name: PHPCS
+        run: composer lint
+
+      - name: PHPStan
+        run: composer analyze
+
+  php-tests:
+    name: PHPUnit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.1'
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        uses: ramsey/composer-install@65e4f84970763564f46a70b8a54b90d033b3bdda # 4.0.0
+
+      - run: npm ci
+
+      # The plugin is glue over the pattern registry, the block renderer and the
+      # roles API, so the suite runs against a real WordPress rather than mocks.
+      # wp-env brings that up in Docker, which the runner already provides.
+      - name: Start WordPress
+        run: npm run env:start
+
+      - name: PHPUnit
+        run: npm run test:php
+
+      - name: WordPress debug log
+        if: failure()
+        run: npx wp-env run tests-cli -- cat /var/www/html/wp-content/debug.log || true
+
+  javascript:
+    name: JavaScript — lint, test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: ESLint
+        run: npm run lint:js
+
+      - name: Node test runner
+        run: npm run test:js
+
+  versions:
+    name: Versions agree
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # One tag drives the Composer package, the npm package and the action, so a
+      # manifest served by one version and read by another is the failure mode
+      # this check exists to prevent. See CONTRIBUTING.md.
+      - name: package.json and plugin.php declare the same version
+        run: |
+          npm_version="$(node -p "require('./package.json').version")"
+          plugin_version="$(sed -n 's/^ \* Version: *//p' plugin.php | head -1 | tr -d '[:space:]')"
+
+          echo "package.json: ${npm_version}"
+          echo "plugin.php:   ${plugin_version}"
+
+          if [ "${npm_version}" != "${plugin_version}" ]; then
+            echo "::error file=plugin.php::Version mismatch: package.json says ${npm_version}, plugin.php says ${plugin_version}."
+            exit 1
+          fi

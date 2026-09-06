@@ -45,8 +45,8 @@ async function prepareForCapture( page, animations ) {
 		} );
 		await Promise.all(
 			images.map( ( image ) =>
-				image.complete ? Promise.resolve() : image.decode().catch( () => {} )
-			)
+				image.complete ? Promise.resolve() : image.decode().catch( () => {} ),
+			),
 		);
 	} );
 }
@@ -74,7 +74,7 @@ async function assertAuthenticated( page, config ) {
 				'Browsers only attach credentials after a 401 carrying WWW-Authenticate, which the preview ' +
 				'route sends — check that the site runs a wp-pattern-library new enough to send it, and that ' +
 				'the credentials are valid for this origin. A 403 or a redirect to a login screen is more ' +
-				'likely an access proxy in front of WordPress — see extraHeaders.'
+				'likely an access proxy in front of WordPress — see extraHeaders.',
 		);
 	}
 }
@@ -167,7 +167,7 @@ export async function captureAll( patterns, config, log = () => {} ) {
 			return route.continue(
 				sameOrigin
 					? { headers: { ...request.headers(), ...config.extraHeaders } }
-					: undefined
+					: undefined,
 			);
 		} );
 	}
@@ -209,7 +209,7 @@ export async function captureAll( patterns, config, log = () => {} ) {
 			for ( const shot of shotsFor( pattern, config ) ) {
 				const destination = join(
 					config.screenshotsDir,
-					`${ shot.basename }.${ config.imageFormat }`
+					`${ shot.basename }.${ config.imageFormat }`,
 				);
 
 				try {
@@ -229,7 +229,7 @@ export async function captureAll( patterns, config, log = () => {} ) {
 						// isolation. Surface it as this pattern's failure and move on.
 						throw new Error(
 							`HTTP ${ status } rendering the pattern (likely a block that needs post context; ` +
-								'try postTypeContext, or exclude it).'
+								'try postTypeContext, or exclude it).',
 						);
 					}
 					await page.evaluate( () => document.fonts && document.fonts.ready );
@@ -266,7 +266,7 @@ export async function captureAll( patterns, config, log = () => {} ) {
 							box ? Math.round( box.height ) : '?'
 						}px tall)${ isEmpty ? ' — EMPTY' : '' }${
 							missingResources.length ? ` — ${ missingResources.length } missing resource(s)` : ''
-						}`
+						}`,
 					);
 				} catch ( error ) {
 					summary.failed.push( { basename: shot.basename, error: error.message } );

@@ -132,7 +132,7 @@ function renderPattern( pattern, shotsRelPath, config, haveShots, labels ) {
 	// unrelated entries. Captions appear only when there is something to tell
 	// apart — a pattern with no variant needs no label on its only image.
 	const shots = shotsFor( pattern, config ).filter( ( shot ) =>
-		haveShots.has( shot.basename )
+		haveShots.has( shot.basename ),
 	);
 	const captioned = shots.length > 1;
 
@@ -226,12 +226,12 @@ export async function generate( manifest, patterns, config, skipped = [] ) {
 			.map( async ( shot ) => {
 				const file = join(
 					config.screenshotsDir,
-					`${ shot.basename }.${ config.imageFormat }`
+					`${ shot.basename }.${ config.imageFormat }`,
 				);
 				if ( await exists( file ) ) {
 					haveShots.add( shot.basename );
 				}
-			} )
+			} ),
 	);
 
 	for ( const page of pages ) {
@@ -239,7 +239,7 @@ export async function generate( manifest, patterns, config, skipped = [] ) {
 		await mkdir( dirname( path ), { recursive: true } );
 
 		const shotsRelPath = toPosix(
-			relative( dirname( path ), config.screenshotsDir )
+			relative( dirname( path ), config.screenshotsDir ),
 		);
 		const indexRelPath = toPosix( relative( dirname( path ), config.indexFile ) );
 
@@ -263,9 +263,9 @@ export async function generate( manifest, patterns, config, skipped = [] ) {
 		out.push( '## Contents', '' );
 		out.push(
 			...[ ...lead, ...rest ].map(
-				( pattern ) => `- [${ pattern.title }](#${ anchor( pattern.title ) })`
+				( pattern ) => `- [${ pattern.title }](#${ anchor( pattern.title ) })`,
 			),
-			''
+			'',
 		);
 
 		const section = ( list ) =>
@@ -304,8 +304,8 @@ async function writeIndex( pages, patterns, config, skipped ) {
 	const kinds = [ ...new Set( pages.map( ( page ) => page.kind ) ) ];
 	const uncategorized = patterns.filter( ( pattern ) =>
 		! pattern.categories.some( ( slug ) =>
-			pages.some( ( page ) => page.slug === slug )
-		)
+			pages.some( ( page ) => page.slug === slug ),
+		),
 	);
 
 	const out = [
@@ -329,8 +329,8 @@ async function writeIndex( pages, patterns, config, skipped ) {
 			const rel = toPosix(
 				relative(
 					dirname( config.indexFile ),
-					resolve( config.outputDir, page.dir, `${ page.filename }.md` )
-				)
+					resolve( config.outputDir, page.dir, `${ page.filename }.md` ),
+				),
 			);
 			out.push( `- [${ page.label }](${ rel }) (${ page.patterns.length })` );
 		}
@@ -342,7 +342,7 @@ async function writeIndex( pages, patterns, config, skipped ) {
 			'## Uncategorized',
 			'',
 			'_These patterns carry no category that appears above._',
-			''
+			'',
 		);
 		out.push( ...uncategorized.map( ( pattern ) => `- \`${ pattern.name }\`` ), '' );
 	}
@@ -352,11 +352,11 @@ async function writeIndex( pages, patterns, config, skipped ) {
 			'## Not included',
 			'',
 			'_Registered on the site, but excluded from this library by configuration._',
-			''
+			'',
 		);
 		out.push(
 			...skipped.map( ( pattern ) => `- \`${ pattern.name }\` — ${ pattern.reason }` ),
-			''
+			'',
 		);
 	}
 

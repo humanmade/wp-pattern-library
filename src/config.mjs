@@ -166,8 +166,8 @@ function normalizeVariants( variants ) {
 		if ( ! /^[a-z0-9]+(-[a-z0-9]+)*$/.test( variant?.slug ?? '' ) ) {
 			throw new Error(
 				`Configuration error: ${ where }.slug must be a lowercase kebab-case string; got ${ JSON.stringify(
-					variant?.slug
-				) }.`
+					variant?.slug,
+				) }.`,
 			);
 		}
 
@@ -183,7 +183,7 @@ function normalizeVariants( variants ) {
 			! Object.keys( variant.wrapper ).length
 		) {
 			throw new Error(
-				`Configuration error: ${ where }.wrapper must be a non-empty object of group block attributes.`
+				`Configuration error: ${ where }.wrapper must be a non-empty object of group block attributes.`,
 			);
 		}
 
@@ -208,7 +208,7 @@ function normalizeVariants( variants ) {
  */
 const titleCase = ( slug ) =>
 	slug.replace( /(^|-)([a-z])/g, ( _, separator, letter ) =>
-		( separator ? ' ' : '' ) + letter.toUpperCase()
+		( separator ? ' ' : '' ) + letter.toUpperCase(),
 	);
 
 /**
@@ -236,8 +236,8 @@ function parseHeaders( value ) {
 		if ( separator < 1 ) {
 			throw new Error(
 				`PATTERN_LIBRARY_EXTRA_HEADERS lines must read "Name: value"; got ${ JSON.stringify(
-					trimmed.slice( 0, 40 )
-				) }.`
+					trimmed.slice( 0, 40 ),
+				) }.`,
 			);
 		}
 
@@ -263,8 +263,8 @@ function parseHeaders( value ) {
 function clean( object ) {
 	return Object.fromEntries(
 		Object.entries( object ).filter(
-			( [ , value ] ) => value !== undefined && value !== null && value !== ''
-		)
+			( [ , value ] ) => value !== undefined && value !== null && value !== '',
+		),
 	);
 }
 
@@ -286,7 +286,7 @@ export function requireConfig( config, keys ) {
 		throw new Error(
 			`Missing required configuration: ${ missing
 				.map( ( key ) => `${ key } (set via ${ hints[ key ] ?? key })` )
-				.join( ', ' ) }`
+				.join( ', ' ) }`,
 		);
 	}
 }
