@@ -3,6 +3,12 @@
 	"version": "0.3.0",
 	"description": "Generate a Markdown pattern library, with screenshots, from a WordPress site's registered block patterns.",
 	"license": "GPL-2.0-or-later",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/humanmade/wp-pattern-library.git"
+	},
+	"bugs": "https://github.com/humanmade/wp-pattern-library/issues",
+	"homepage": "https://humanmade.github.io/wp-pattern-library/",
 	"type": "module",
 	"engines": {
 		"node": ">=24"

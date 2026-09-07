@@ -256,9 +256,17 @@ versions have to agree before the tag exists.
    that release is published. Packagist picks the tag up through its GitHub
    hook.
 
-Publishing to npm needs an `NPM_TOKEN` repository secret — an automation token
-for an account that can publish to the `@humanmade` scope — exposed to the `npm`
-environment.
+Publishing to npm needs no secret. npmjs.com holds a trusted publisher for
+`@humanmade/wp-pattern-library` naming this repository, `publish.yml` and the
+`npm` environment, and the workflow trades a GitHub OIDC token for short-lived
+publish rights. Renaming or moving `publish.yml`, or dropping its `environment:
+npm`, breaks publishing until the trusted publisher on npm is updated to match.
+
+Step 4 also needs a `RELEASE_TOKEN` secret: a personal access token with
+`contents: write` on this repository, which `Tag and Release` uses to cut the
+release. GitHub deliberately does not let the automatic `GITHUB_TOKEN` trigger
+further workflow runs, so a release created without that token is a dead end —
+`Publish to npm` never starts, and someone has to dispatch it by hand.
 
 Consuming workflows pin the action to a released tag. There is deliberately no
 moving `@v1` tag while the package is pre-1.0.
@@ -275,9 +283,8 @@ the codebase:
 - **Better empty-pattern diagnosis.** The CLI reports which patterns rendered
   empty; it could say more about *why* by inspecting what blocks they contain.
 
-[`docs/roadmap.md`](docs/roadmap.md) has a longer list of ideas, including
-larger ones. If you want to take something on, open an issue first so we can
-agree on the shape before you build it.
+If you want to take something on, open an issue first so we can agree on the
+shape before you build it.
 
 ## Reporting a bug
 
