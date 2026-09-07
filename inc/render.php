@@ -292,7 +292,9 @@ function wrapper_markup( array $attributes ): array {
 		// JSON_HEX_TAG so no attribute value can carry an angle bracket into the
 		// block comment and close it early.
 		(string) wp_json_encode( $clean, JSON_HEX_TAG ),
-		esc_attr( implode( ' ', array_unique( array_filter( $classes ) ) ) ),
+		// No array_filter(): every branch above appends a literal prefix, so no
+		// entry can be empty even when a sanitized value is.
+		esc_attr( implode( ' ', array_unique( $classes ) ) ),
 		'' === $style ? '' : sprintf( ' style="%s"', esc_attr( $style ) )
 	);
 

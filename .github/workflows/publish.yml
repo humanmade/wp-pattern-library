@@ -1,0 +1,84 @@
+# Publish the npm package when a release is published.
+#
+# Packagist needs nothing here: it picks `humanmade/wp-pattern-library` up from
+# the same tag through its GitHub hook. This workflow covers the other half of
+# the pair, so one tag really does mean the same code in both registries.
+#
+# Authentication is npm trusted publishing: npmjs.com holds a trusted publisher
+# for this package naming this repository, this workflow file and the `npm`
+# environment, and npm exchanges the OIDC token minted below for a short-lived
+# publish credential. There is no NPM_TOKEN to store or rotate, and the four
+# facts npm matches on are all visible here — moving or renaming this file, or
+# dropping the environment, breaks publishing until the trusted publisher is
+# updated to match.
+#
+# The `release: published` trigger only fires for a release created by a personal
+# access token. GitHub deliberately does not let the automatic GITHUB_TOKEN
+# trigger further workflow runs, so tag-and-release.yml has to cut the release
+# with its RELEASE_TOKEN secret for this to run on its own. Without that secret,
+# dispatch this workflow by hand after the release exists.
+
+name: Publish to npm
+
+on:
+  release:
+    types: [ published ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # Required to mint the OIDC token npm exchanges for publish rights. It is also
+  # what ties the published tarball to this workflow run and commit, which npm
+  # records as provenance.
+  id-token: write
+
+jobs:
+  npm:
+    name: npm publish
+    runs-on: ubuntu-latest
+    environment: npm
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.release.tag_name || github.ref }}
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      # Trusted publishing needs npm 11.5.1 or newer. Node 24 ships something
+      # recent enough today, but the bundled version moves with the runner
+      # image, so it is pinned forward here rather than left to chance.
+      - name: Use an npm that can publish over OIDC
+        run: npm install --global npm@^11.5.1
+
+      - run: npm ci
+
+      # Publishing is irreversible, so the gate that CI applies to every pull
+      # request is applied once more against the actual tag being released.
+      - name: The tag, package.json and plugin.php agree
+        run: |
+          set -euo pipefail
+
+          tag="${{ github.event.release.tag_name }}"
+          npm_version="$(node -p "require('./package.json').version")"
+          plugin_version="$(sed -n 's/^ \* Version: *//p' plugin.php | head -1 | tr -d '[:space:]')"
+
+          if [ -n "${tag}" ] && [ "${tag#v}" != "${npm_version}" ]; then
+            echo "::error::Tag ${tag} does not match package.json ${npm_version}."
+            exit 1
+          fi
+
+          if [ "${plugin_version}" != "${npm_version}" ]; then
+            echo "::error::plugin.php ${plugin_version} does not match package.json ${npm_version}."
+            exit 1
+          fi
+
+      # No NODE_AUTH_TOKEN: the credential comes from the OIDC exchange above.
+      # Provenance is generated automatically for a trusted-publisher release,
+      # so `--provenance` is not passed either.
+      - name: Publish
+        run: npm publish --access public

@@ -140,7 +140,7 @@ function maybe_render(): void {
 		send_error( 401, 'Authentication required. Send an application password for a user holding the ' . CAPABILITY . ' capability.' );
 	}
 
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only route, authenticated above.
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended, HM.Security.ValidatedSanitizedInput.InputNotValidated -- read-only route, authenticated above; the index is guaranteed by the is_preview_request() guard at the top of this function.
 	$value = sanitize_text_field( wp_unslash( (string) $_GET[ QUERY_VAR ] ) );
 
 	if ( '__manifest' === $value ) {

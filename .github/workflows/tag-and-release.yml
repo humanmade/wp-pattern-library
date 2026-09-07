@@ -1,0 +1,73 @@
+# Cut a release: tag the target branch, then publish a GitHub release from it.
+#
+# The tagging and release mechanics live in humanmade/hm-github-actions, shared
+# with ~23 other Human Made plugin repositories. Only the version check below is
+# specific to this repository: one tag drives the Composer package, the npm
+# package and the action, so those have to agree before the tag exists —
+# afterwards it is too late.
+#
+# Publishing to npm is handled by publish.yml, which runs when the release this
+# workflow creates is published. That only fires if the release is created by a
+# personal access token: GitHub deliberately does not let the automatic
+# GITHUB_TOKEN trigger further workflow runs. Set a RELEASE_TOKEN secret holding
+# a PAT with `contents: write` on this repository, or dispatch "Publish to npm"
+# by hand after cutting the release.
+
+name: Tag and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag, e.g. v0.4.0. Must match package.json and plugin.php.'
+        required: true
+      target_branch:
+        description: 'Branch to tag.'
+        default: main
+        required: true
+
+jobs:
+  check_versions:
+    name: Check the versions agree
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.target_branch }}
+
+      - name: The tag, package.json and plugin.php agree
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${VERSION##v*}" ]; then
+            echo "::error::Version must be tag-shaped, e.g. v0.4.0; got ${VERSION}."
+            exit 1
+          fi
+          bare="${VERSION#v}"
+
+          npm_version="$(node -p "require('./package.json').version")"
+          plugin_version="$(sed -n 's/^ \* Version: *//p' plugin.php | head -1 | tr -d '[:space:]')"
+
+          if [ "${npm_version}" != "${bare}" ] || [ "${plugin_version}" != "${bare}" ]; then
+            echo "::error::Version mismatch. Tag ${VERSION}, package.json ${npm_version}, plugin.php ${plugin_version}."
+            exit 1
+          fi
+
+  tag_and_release:
+    name: Tag and Release
+    needs: check_versions
+    permissions:
+      contents: write
+    uses: humanmade/hm-github-actions/.github/workflows/tag-and-release.yml@70b862a2bc0669a2123d5bf3d909642c8dc07483 # v0.5.0
+    with:
+      version: ${{ inputs.version }}
+      target_branch: ${{ inputs.target_branch }}
+    secrets:
+      # Falls back to GITHUB_TOKEN when unset — at the cost of publish.yml not
+      # being triggered by the release this creates.
+      token: ${{ secrets.RELEASE_TOKEN }}
