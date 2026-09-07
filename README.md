@@ -94,7 +94,7 @@ Beyond the basics, the generator can capture [section variants](https://humanmad
 
 ## Requirements
 
-WordPress 6.0+ · PHP 8.1+ · Node 24+
+WordPress 6.1+ · PHP 8.1+ · Node 24+
 
 ## Documentation
 
