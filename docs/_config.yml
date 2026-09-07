@@ -7,6 +7,18 @@ url: 'https://humanmade.github.io'
 
 theme: just-the-hm-docs
 
+# ADRs are engineering records read on GitHub, not site pages: they carry no
+# front matter, so Jekyll would publish them unstyled and un-navigable.
+# Listing `exclude` at all replaces Jekyll's defaults, so those are repeated here.
+exclude:
+  - .jekyll-cache/
+  - .sass-cache/
+  - Gemfile
+  - Gemfile.lock
+  - vendor/
+  - architecture/
+  - roadmap.md
+
 plugins:
   - jekyll-include-cache
 

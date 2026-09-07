@@ -18,7 +18,7 @@ Running from a workflow rather than a local environment gets you two things:
 - **Captures against a deployed site**, with real content, real images and real fonts, on code that's actually shipped.
 - **A reviewable diff.** Screenshots are only rewritten when their bytes change, so the pull request contains exactly the patterns whose appearance changed. That doubles as a rough visual regression check — a screenshot that changes in a release nobody expected to touch the front end is worth a look.
 
-The trade-off is that it only sees what's deployed. A pattern that exists on your branch and not on the captured site renders as *"Preview pending"* until it ships. If you want previews of in-progress work, run the CLI locally alongside the PR instead.
+The trade-off is that it only sees what's deployed. The manifest comes from the captured site, so a pattern that exists on your branch and not on that site is absent from the library entirely — it appears for the first time in the run that follows its deployment. If you want previews of in-progress work, run the CLI locally alongside the PR instead.
 
 ## Setup
 

@@ -39,7 +39,7 @@ I'm sure there are workflows that I haven't thought of yet. Feature requests or 
 
 ## How it works
 
-**WP Pattern Library** generator contains two separate packages, both of which are maintained and served from a single repo:
+**WP Pattern Library** generator contains three separate packages, all of which are maintained and served from a single repo:
 
 * a **WordPress plugin**, installed or loaded the usual way. This provides a new front-end endpoint which will return a single rendered pattern, wrapped in the theme stylesheet and any block-specific enqueues. It also provides a manifest of patterns available on the site, configurable in a local config file. 
 
