@@ -7,7 +7,7 @@ permalink: /plugin
 
 # WordPress plugin
 
-The plugin is the half that runs on WordPress. It adds one front-end endpoint that renders a single registered pattern in isolation, and a manifest listing every pattern available to capture.
+The WP Pattern Library WordPress plugin adds a front-end endpoint which renders a single registered pattern in isolation, and a manifest that lists every pattern and variant available to capture.
 
 ## Installing
 
@@ -66,7 +66,7 @@ add_filter( 'pattern_library_user_can', fn () => current_user_can( 'edit_theme_o
 
 ## The endpoints
 
-Both are query vars on `index.php`, on the front end.
+Both are query vars on `index.php`, on the front end. 
 
 | URL                                             | Returns                                   |
 | ----------------------------------------------- | ----------------------------------------- |
@@ -80,8 +80,6 @@ Both are query vars on `index.php`, on the front end.
 A pattern renders in a minimal HTML document with `wp_head()` and `wp_footer()` intact, so the theme's real stylesheets, fonts and block styles load — but with no site header, footer or admin bar. The pattern is wrapped in `#pattern-library-preview`, which is what the capture tool crops to.
 
 Every response carries `X-Robots-Tag: noindex, nofollow` and cache-busting headers. An unauthenticated request gets a `401` with a `WWW-Authenticate` challenge.
-
-Three further query vars exist, all set by the CLI rather than by hand:
 
 | Query var                     | Purpose                                                        |
 | ----------------------------- | -------------------------------------------------------------- |

@@ -224,7 +224,7 @@ variants: [
 | `label`     | no       | Caption above the image. Defaults to a title-cased `slug`. |
 | `appliesTo` | no       | Predicate receiving the pattern. Defaults to all patterns. |
 
-![The same pattern captured a second time inside a dark section wrapper]({{ site.baseurl }}/assets/images/example-capture-variant.webp)
+![A pattern section in the generated library, showing the plain capture and the same pattern captured again inside a dark section wrapper, each under its own caption]({{ site.baseurl }}/assets/images/example-capture-variant.webp)
 
 When a pattern has at least one variant image, every image in its section gets a caption — the variant's `label`, and `baseLabel` for the plain capture. A pattern with no variants keeps its single uncaptioned image.
 

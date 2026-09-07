@@ -24,11 +24,11 @@ wp plugin activate wp-pattern-library
 
 The package declares `"type": "wordpress-plugin"`, so `composer/installers` routes it to the project's plugin directory without any `installer-paths` change.
 
-Not using Composer? Clone the repository into your plugins directory and activate it. There is no build step.
+Not using Composer? Clone the repository into your plugins directory and activate it. There is no build step required for the server-side plugin.
 
 ## 2. Limit it to your own patterns
 
-WordPress registers a lot of patterns you didn't write. Tell the plugin which namespace is yours:
+Some WordPress themes or plugins register a lot of patterns you didn't write and might not want to maintain documentation for. Tell the plugin which namespace is yours:
 
 ```php
 add_filter( 'pattern_library_namespaces', fn () => [ 'my-theme/' ] );
