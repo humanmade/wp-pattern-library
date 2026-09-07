@@ -244,9 +244,31 @@ matter. Keep the two in step.
 Releases are cut from `main`. One tag drives all three artifacts, so the
 versions have to agree before the tag exists.
 
-1. **Bump the version in two places, in one commit:** `version` in
-   `package.json`, and the `Version:` header in `plugin.php`. CI fails the pull
-   request if they disagree.
+1. **Bump the version, in one commit.** Two of these are checked by CI, which
+   fails the pull request if they disagree. The other three are documentation,
+   and nothing will tell you if you forget them:
+
+   | File | What to change | Checked? |
+   | ---- | -------------- | -------- |
+   | `package.json` | `version` | yes |
+   | `plugin.php` | the `Version:` header | yes |
+   | `README.md` | the `uses: humanmade/wp-pattern-library@vX.Y.Z` pin | no |
+   | `docs/05-github-action.md` | the same pin, twice | no |
+   | `examples/refresh-pattern-library.yml` | the same pin | no |
+
+   The action pins are what consumers copy, so a stale one sends people to the
+   previous release. List all four and check they read as the new version:
+
+   ```bash
+   git grep -n "wp-pattern-library@v" -- README.md docs/05-github-action.md examples/
+   ```
+
+   Then confirm nothing anywhere still names the version you bumped *from*.
+   Substitute the old version; it should print no lines:
+
+   ```bash
+   git grep -n "0\.3\.0" -- ':(exclude)package-lock.json' ':(exclude)composer.lock'
+   ```
 2. **Merge to `main`.**
 3. **Run the [Tag and Release](../../actions/workflows/tag-and-release.yml)
    workflow**, giving it the tag (`v0.4.0`). It re-checks that the tag,
@@ -269,7 +291,9 @@ further workflow runs, so a release created without that token is a dead end —
 `Publish to npm` never starts, and someone has to dispatch it by hand.
 
 Consuming workflows pin the action to a released tag. There is deliberately no
-moving `@v1` tag while the package is pre-1.0.
+moving `@v1` tag while the package is pre-1.0 — which is why step 1 has five
+files in it rather than two, and why the pins are worth grepping for rather
+than remembering.
 
 ## Good first issues
 

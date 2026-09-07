@@ -94,7 +94,7 @@ jobs:
           node-version: 24
 
       - name: Build the pattern library
-        uses: humanmade/wp-pattern-library@v0.3.0
+        uses: humanmade/wp-pattern-library@v0.4.0
         with:
           site-url: ${{ vars.PATTERN_LIBRARY_SITE }}
           username: ${{ secrets.PATTERN_LIBRARY_WP_USER }}
@@ -234,7 +234,7 @@ Send the proxy's credentials alongside the application password:
 
 ```yaml
       - name: Build the pattern library
-        uses: humanmade/wp-pattern-library@v0.3.0
+        uses: humanmade/wp-pattern-library@v0.4.0
         with:
           site-url: ${{ vars.PATTERN_LIBRARY_SITE }}
           username: ${{ secrets.PATTERN_LIBRARY_WP_USER }}
