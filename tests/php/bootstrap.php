@@ -4,8 +4,10 @@
  *
  * The plugin is thin glue over WordPress' pattern registry, the block renderer
  * and the roles API, so these are integration tests against a real WordPress:
- * mocking that surface would test the mocks. `composer test` runs them inside
- * wp-env, where the test library lives at /wordpress-phpunit.
+ * mocking that surface would test the mocks. Run them with `npm run test:php`,
+ * which executes PHPUnit inside wp-env, where the test library lives at
+ * /wordpress-phpunit. `composer test` is the bare PHPUnit call that wrapper
+ * makes, and only works from inside the container or with WP_TESTS_DIR set.
  *
  * @package HM\Pattern_Library
  */
@@ -22,7 +24,7 @@ if ( ! file_exists( $_tests_dir . '/includes/functions.php' ) ) {
 	fwrite(
 		STDERR,
 		"Could not find the WordPress test library at {$_tests_dir}.\n" .
-		"Run the suite with `composer test`, which executes it inside wp-env, or set WP_TESTS_DIR.\n"
+		"Run the suite with `npm run test:php`, which executes it inside wp-env, or set WP_TESTS_DIR.\n"
 	);
 	exit( 1 );
 }
