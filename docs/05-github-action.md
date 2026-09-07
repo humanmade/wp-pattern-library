@@ -34,11 +34,11 @@ wp pattern-library setup --login=pattern-library-bot
 
 Under **Settings → Secrets and variables → Actions**:
 
-| Name                              | Kind     | Value                     |
-| --------------------------------- | -------- | ------------------------- |
-| `PATTERN_LIBRARY_WP_USER`         | Secret   | `pattern-library-bot`     |
-| `PATTERN_LIBRARY_WP_APP_PASSWORD` | Secret   | The application password  |
-| `PATTERN_LIBRARY_SITE`            | Variable | `https://www.example.com` |
+| Name                              | Kind     | Value                      |
+| --------------------------------- | -------- | -------------------------- |
+| `PATTERN_LIBRARY_WP_USER`         | Secret   | e.g. `pattern-library-bot` |
+| `PATTERN_LIBRARY_WP_APP_PASSWORD` | Secret   | The application password   |
+| `PATTERN_LIBRARY_SITE`            | Variable | `https://www.example.com`  |
 
 The site URL is a variable rather than a secret because it isn't one, and having it visible in the workflow log is useful when a run captures the wrong environment.
 
@@ -130,9 +130,11 @@ Pin `version` to the same release as the action reference, so a run can't mix ve
 
 ## Triggers
 
-The example is `workflow_dispatch` on purpose. A refresh opens a pull request containing images and captures whatever is deployed at that moment, so it's usually best run when you know what state the site is in.
+The example above illustrates a manual `workflow_dispatch`. This opens a pull request containing images and captures whatever is deployed at that moment.
 
-On a schedule instead:
+For a hand-off approach, use any other triggers available in GitHub Actions:
+
+### On a schedule
 
 ```yaml
 on:
@@ -141,7 +143,80 @@ on:
     - cron: '0 6 * * 1'   # Mondays, 06:00 UTC
 ```
 
-Note that `schedule` triggers don't receive `inputs`, so give the workflow defaults that stand on their own.
+### When patterns or styles change
+
+The obvious thing to reach for is a path-filtered `push`:
+
+```yaml
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'themes/*/patterns/**'
+      - 'themes/*/parts/**'
+      - 'themes/*/templates/**'
+      - 'themes/*/theme.json'
+      - 'themes/*/style.css'
+      - 'themes/*/assets/**'
+```
+
+{: .warning }
+
+> **A bare `push` trigger races your deploy.** The capture reads the *deployed* site, not the branch that just changed. A push-triggered run starts within seconds of the merge, while the deploy that would put those patterns on the site is still going — so the refresh captures the previous build and reports no changes, or worse, quietly re-commits the old screenshots. Use it only where the merge and the deploy are effectively the same event.
+
+The trigger you usually want is the deploy finishing, not the push starting:
+
+```yaml
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [ Deploy ]     # The `name:` of your deploy workflow.
+    branches: [ main ]
+    types: [ completed ]
+
+concurrency:
+  group: pattern-library-refresh
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+```
+
+`workflow_run` takes no `paths` filter, so the path check moves inside the job — check out the commit the deploy shipped, with its parent, and compare:
+
+```yaml
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+          fetch-depth: 2
+
+      - name: Did anything visual change?
+        id: touched
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet HEAD^ HEAD -- \
+            'themes/*/patterns/*' 'themes/*/parts/*' 'themes/*/templates/*' \
+            'themes/*/theme.json' 'themes/*/style.css' 'themes/*/assets/*'
+          then
+            echo 'No pattern or style changes in this deploy.'
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+```
+
+Those pathspecs are not the same strings as the `paths:` filter above, and the difference is easy to lose an afternoon to. A `paths:` filter is matched by Actions, where `*` stops at a `/` and `**` is what recurses. A pathspec is matched by git, where `*` happily crosses `/` — but a pathspec containing a wildcard has to match the *whole* path, so the directory shorthand stops working: `themes/*/patterns` matches nothing at all, while `themes/*/patterns/*` matches every file at any depth beneath it.
+
+Then guard the capture and the pull request with `if: steps.touched.outputs.changed == 'true'`. Leaving `workflow_dispatch` in place gives you a manual override for the times the diff is not the whole story — a plugin update or a content change can move a rendering without touching a file in that list.
+
+The `concurrency` group matters more here than on a schedule: several merges in an afternoon would otherwise start several capture runs against the same site, each spending minutes in a browser to produce a pull request the next one supersedes. Cancelling the in-flight run keeps one refresh going at a time. The pull request itself is safe either way — `create-pull-request` reuses the `pattern-library/refresh` branch, so repeated runs update one pull request rather than opening a pile of them.
+
+### Automatic triggers get no `inputs`
+
+`schedule`, `push` and `workflow_run` all run without the `workflow_dispatch` inputs, so `${{ inputs.output_path }}` evaluates to an empty string. Give every input a default the expression can fall back to, or replace the references with `env:` values the whole workflow shares.
 
 ## Which environment to capture
 
@@ -196,4 +271,6 @@ The action is a thin wrapper. The CLI is a plain Node program, so GitLab CI, Bit
 
 **The pull request is enormous.** Every screenshot changed, which usually means live content in query loops. See [screenshot churn]({{ site.baseurl }}/npm-package#troubleshooting).
 
-**Nothing happens on a schedule trigger.** `schedule` doesn't pass `inputs`, so a workflow that relies on `${{ inputs.output_path }}` gets an empty string. Give the inputs defaults the expressions can fall back to.
+**Nothing happens on a schedule trigger.** `schedule` doesn't pass `inputs`, so a workflow that relies on `${{ inputs.output_path }}` gets an empty string. Give the inputs defaults the expressions can fall back to. The same applies to `push` and `workflow_run`.
+
+**An automatic refresh reports no changes after an obvious pattern change.** The run captured the site before the deploy reached it. Trigger the refresh from the deploy finishing rather than from the push — see [triggers](#when-patterns-or-styles-change).

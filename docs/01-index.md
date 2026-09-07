@@ -10,7 +10,7 @@ permalink: /
 
 WP Pattern Library builds a browsable, screenshotted Markdown design reference from the registered patterns in a WordPress project. Documentation is generated from the patterns themselves, so it can reflect the actual theming.
 
-![A pattern as the generator captured it — a full-width hero, rendered at 1440px with the theme's real styles and fonts]({{ site.baseurl }}/assets/images/example-capture.webp)
+![One pattern's entry in a generated library: its title, its slug, the capture itself, the description from the pattern header, and the category, keyword, block type and viewport metadata beneath it]({{ site.baseurl }}/assets/images/example-capture.webp)
 
 The preview is similar to the pattern previews in the editor "Add Pattern" interface, but pregenerated so that its easier to browse.  It also includes description and pattern metadata, for design reference. On a project with 50 or more patterns this can be useful as end user reference documentation as well as for developer review and regression testing.  
 
