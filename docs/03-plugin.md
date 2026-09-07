@@ -104,7 +104,7 @@ As a backstop, the CLI navigates the browser to the manifest URL and requires a 
 
 ## The manifest
 
-The manifest is the contract between the two packages: the plugin produces it and the NPM package consumes it.
+The manifest is the contract between the plugin and the NPM package: the plugin produces it, and the package consumes it.
 
 ```json
 {

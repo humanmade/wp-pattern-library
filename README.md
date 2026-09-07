@@ -3,6 +3,7 @@
 Generate a browsable Markdown pattern library — with screenshots — from a WordPress site's registered block patterns.
 
 **📖 [Documentation](https://humanmade.github.io/wp-pattern-library/)**
+
 - [Getting started](https://humanmade.github.io/wp-pattern-library/getting-started)
 - [WordPress plugin](https://humanmade.github.io/wp-pattern-library/plugin)
 - [NPM package](https://humanmade.github.io/wp-pattern-library/npm-package)
@@ -12,20 +13,21 @@ Generate a browsable Markdown pattern library — with screenshots — from a Wo
 
 A block theme of any size is going to end up with dozens or hundreds of patterns. That is a design system, and it has the design system problem: the names live in `patterns/*.php`, the appearance lives in the block inserter behind a login, and neither is somewhere you can point at.
 
-This generates the missing artifact. The site serves a manifest of its registered patterns and renders each one in isolation; a Node CLI captures them with Playwright and writes an index plus one page per category. The result is Markdown and images you commit — so it renders on GitHub, it is searchable, and when a pattern's appearance changes, the changed screenshot shows up in review.
+This plugin generates the missing artifact. The site serves a manifest of its registered patterns and renders each one in isolation; a Node CLI captures them with Playwright and writes an index plus one page per category. The result is Markdown and images you commit — so it renders on GitHub, it is searchable, and when a pattern's appearance changes, the changed screenshot shows up in review.
 
 It works against your local environment or a live site. A GitHub Action can run the whole thing and open a pull request with the refreshed docs.
 
 ## Install
 
-Two packages ship from this repository, from the same tag:
+Three separate packages ship from this repository, all from the same tag:
 
-| Package | Install |
-|---|---|
-| `humanmade/wp-pattern-library` | `composer require humanmade/wp-pattern-library` |
-| `@humanmade/wp-pattern-library` | `npm install -D @humanmade/wp-pattern-library` |
+|                  | Name                            | How you use it                                  |
+| ---------------- | ------------------------------- | ----------------------------------------------- |
+| WordPress plugin | `humanmade/wp-pattern-library`  | `composer require humanmade/wp-pattern-library` |
+| CLI              | `@humanmade/wp-pattern-library` | `npm install -D @humanmade/wp-pattern-library`  |
+| GitHub Action    | `humanmade/wp-pattern-library`  | `uses: humanmade/wp-pattern-library@v0.3.0`     |
 
-The Composer package is the WordPress plugin, and belongs on the site you capture from. The npm package is the CLI, and runs wherever you generate the library — your machine, or CI. The site does not need Node.
+The plugin belongs on the site you capture from. The CLI runs wherever you generate the library — your machine, or CI — so the site itself never needs Node. The action is a thin wrapper around the CLI for running the whole thing in a workflow; pin it to a released tag, as there is deliberately no moving `@v1` tag while the package is pre-1.0.
 
 ## Quick start
 
@@ -98,13 +100,13 @@ WordPress 6.1+ · PHP 8.1+ · Node 24+
 
 ## Documentation
 
-| | |
-|---|---|
-| [About](https://humanmade.github.io/wp-pattern-library/) | What it does, and what it deliberately does not. |
-| [Getting started](https://humanmade.github.io/wp-pattern-library/getting-started) | Install and first capture, against a local site. |
-| [WordPress plugin](https://humanmade.github.io/wp-pattern-library/plugin) | What it adds to a site, access control, endpoints, filters. |
-| [NPM package](https://humanmade.github.io/wp-pattern-library/npm-package) | Every config option, CLI commands, output. |
-| [GitHub Action](https://humanmade.github.io/wp-pattern-library/github-action) | Running it in CI against a live site. |
+|                                                                                   |                                                             |
+| --------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| [About](https://humanmade.github.io/wp-pattern-library/)                          | What it does, and what it deliberately does not.            |
+| [Getting started](https://humanmade.github.io/wp-pattern-library/getting-started) | Install and first capture, against a local site.            |
+| [WordPress plugin](https://humanmade.github.io/wp-pattern-library/plugin)         | What it adds to a site, access control, endpoints, filters. |
+| [NPM package](https://humanmade.github.io/wp-pattern-library/npm-package)         | Every config option, CLI commands, output.                  |
+| [GitHub Action](https://humanmade.github.io/wp-pattern-library/github-action)     | Running it in CI against a live site.                       |
 
 Design decisions are recorded as ADRs in [`docs/architecture/`](docs/architecture).
 

@@ -1,5 +1,4 @@
 ---
-
 layout: home
 title: About this plugin
 nav_order: 1
@@ -12,7 +11,7 @@ WP Pattern Library builds a browsable, screenshotted Markdown design reference f
 
 ![One pattern's entry in a generated library: its title, its slug, the capture itself, the description from the pattern header, and the category, keyword, block type and viewport metadata beneath it]({{ site.baseurl }}/assets/images/example-capture.webp)
 
-The preview is similar to the pattern previews in the editor "Add Pattern" interface, but pregenerated so that its easier to browse.  It also includes description and pattern metadata, for design reference. On a project with 50 or more patterns this can be useful as end user reference documentation as well as for developer review and regression testing.  
+The preview is similar to the pattern previews in the editor "Add Pattern" interface, but pre-generated so that it's easier to browse.  It also includes extensible description and pattern metadata, for design reference. On a project with 50 or more patterns, this can be useful as end user reference documentation as well as for developer review and regression testing.  
 
 ## Purpose
 
@@ -22,18 +21,18 @@ Designed to make living project reference documentation easier to maintain. This
 
 * Can be run against a QA site to capture patterns with live content, for example in a CI action.
 
-* Can enable the plugin on a production site to capture patterns built in the editor in addition to the ones on disk, and then deactivate once no longer needed.  
+* Can enable the plugin on a production site to capture patterns built in the editor in addition to the ones on disk, and then deactivate once no longer needed.
 
 ## Use cases
 
 I built this to address specific pain points that came up in development on projects:
 
-* *Is there already a pattern for this?* Easier to look at pre-existing work before adding new patterns or blocks. 
+* *Is there already a pattern for this?* Easier to look at pre-existing work before adding new patterns or blocks.
 - *What does `card-person-horizontal` actually look like?* You open the editor, insert it, look, undo. 
 - *Which of these three testimonial patterns did the design call for?* The designer does not have an editor login, so you screenshot it and paste it into Slack. Again. 
 - *What changed in the theme this sprint?* Run a pattern library update automatically at reporting intervals.
 - *Where do these components from the source site migrate to in the new theme?* Extend the pattern library markup to describe which fields in the source content populate each element in a pattern.
-- Does this CSS rule break the rendering of any existing content? With a thoughtful setup this can be used as a basic visual regression test in CI workflows.  
+- *Does this CSS rule break the rendering of any existing content?* The output can be used in visual regression testing in CI workflows.
 
 I'm sure there are workflows that I haven't thought of yet. Feature requests or PRs welcome!
 
@@ -64,7 +63,5 @@ docs/pattern-library/
 ```
 
 Each pattern gets its screenshot, its description, its categories and keywords, its block and post types, and the viewport it was captured at. Because it is Markdown in the repository, it renders on GitHub, it is searchable, it diffs in pull requests — and when a pattern's appearance changes, the changed screenshot shows up in review.
-
-
 
 Ready? [Get started]({{ site.baseurl }}/getting-started). 
