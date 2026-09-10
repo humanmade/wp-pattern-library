@@ -274,21 +274,27 @@ versions have to agree before the tag exists.
    workflow**, giving it the tag (`v0.4.0`). It re-checks that the tag,
    `package.json` and `plugin.php` all agree, refuses to overwrite an existing
    tag, creates the tag, and publishes a GitHub release with generated notes.
-4. **Publishing happens automatically.** The `Publish to npm` workflow runs when
-   that release is published. Packagist picks the tag up through its GitHub
-   hook.
+   Its last job publishes the npm package from the tag it just created, so
+   there is nothing further to trigger. Packagist picks the tag up through its
+   GitHub hook.
 
-Publishing to npm needs no secret. npmjs.com holds a trusted publisher for
-`@humanmade/wp-pattern-library` naming this repository, `publish.yml` and the
-`npm` environment, and the workflow trades a GitHub OIDC token for short-lived
-publish rights. Renaming or moving `publish.yml`, or dropping its `environment:
-npm`, breaks publishing until the trusted publisher on npm is updated to match.
+That publish is one job in `tag-and-release.yml`, not a workflow of its own,
+because the obvious wiring does not work: a release created by the automatic
+`GITHUB_TOKEN` does not trigger a `release: published` workflow, so a separate
+publisher waits for an event that never arrives. Keeping it in the same workflow
+takes the event off the path.
 
-Step 4 also needs a `RELEASE_TOKEN` secret: a personal access token with
-`contents: write` on this repository, which `Tag and Release` uses to cut the
-release. GitHub deliberately does not let the automatic `GITHUB_TOKEN` trigger
-further workflow runs, so a release created without that token is a dead end —
-`Publish to npm` never starts, and someone has to dispatch it by hand.
+Publishing needs no secret. npmjs.com holds a trusted publisher for
+`@humanmade/wp-pattern-library` naming this repository, **`tag-and-release.yml`**
+and the `npm` environment, and the workflow trades a GitHub OIDC token for
+short-lived publish rights. Renaming or moving that file, or dropping its
+`environment: npm`, breaks publishing until the trusted publisher on npm is
+updated to match.
+
+If the publish fails after the tag and release already exist — a registry
+hiccup, say — use **Re-run failed jobs** on that workflow run. It re-runs the
+`npm` job alone, against the tag that is already there. Do not bump the version
+and cut a second release to work around a publish failure.
 
 Consuming workflows pin the action to a released tag. There is deliberately no
 moving `@v1` tag while the package is pre-1.0 — which is why step 1 has five

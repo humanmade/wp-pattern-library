@@ -1,17 +1,27 @@
-# Cut a release: tag the target branch, then publish a GitHub release from it.
+# Cut a release: tag the target branch, publish a GitHub release from it, and
+# publish the npm package from the tag that was just created.
 #
 # The tagging and release mechanics live in humanmade/hm-github-actions, shared
-# with ~23 other Human Made plugin repositories. Only the version check below is
+# with ~23 other Human Made plugin repositories. The two jobs around it are
 # specific to this repository: one tag drives the Composer package, the npm
 # package and the action, so those have to agree before the tag exists —
 # afterwards it is too late.
 #
-# Publishing to npm is handled by publish.yml, which runs when the release this
-# workflow creates is published. That only fires if the release is created by a
-# personal access token: GitHub deliberately does not let the automatic
-# GITHUB_TOKEN trigger further workflow runs. Set a RELEASE_TOKEN secret holding
-# a PAT with `contents: write` on this repository, or dispatch "Publish to npm"
-# by hand after cutting the release.
+# npm publishing is a job here rather than a workflow of its own, because the
+# obvious wiring does not work: a release created by the automatic GITHUB_TOKEN
+# does not trigger a `release: published` workflow, so a separate publisher
+# would sit there waiting for an event that never arrives. Running it in the
+# same workflow removes the event from the path entirely.
+#
+# Packagist needs nothing here: it picks `humanmade/wp-pattern-library` up from
+# the same tag through its GitHub hook.
+#
+# Authentication for the publish is npm trusted publishing. npmjs.com holds a
+# trusted publisher for the package naming this repository, THIS WORKFLOW FILE
+# and the `npm` environment, and npm exchanges the OIDC token minted by the
+# `npm` job for a short-lived publish credential. There is no NPM_TOKEN to store
+# or rotate — but renaming or moving this file, or dropping the environment,
+# breaks publishing until the trusted publisher is updated to match.
 
 name: Tag and Release
 
@@ -68,6 +78,63 @@ jobs:
       version: ${{ inputs.version }}
       target_branch: ${{ inputs.target_branch }}
     secrets:
-      # Falls back to GITHUB_TOKEN when unset — at the cost of publish.yml not
-      # being triggered by the release this creates.
+      # Optional, and no longer on the critical path: npm publishing happens in
+      # the job below rather than by reacting to the release event. Set it only
+      # if something else should be triggered by the release this creates.
       token: ${{ secrets.RELEASE_TOKEN }}
+
+  npm:
+    name: Publish to npm
+    needs: tag_and_release
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      # Required to mint the OIDC token npm exchanges for publish rights. It is
+      # also what ties the published tarball to this workflow run and commit,
+      # which npm records as provenance.
+      id-token: write
+
+    steps:
+      # The tag, not the branch: the branch can move between the check above and
+      # this job, and what was released is what should be published.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.version }}
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      # Trusted publishing needs npm 11.5.1 or newer. Node 24 ships something
+      # recent enough today, but the bundled version moves with the runner
+      # image, so it is pinned forward here rather than left to chance.
+      - name: Use an npm that can publish over OIDC
+        run: npm install --global npm@^11.5.1
+
+      - run: npm ci
+
+      # Publishing is irreversible, so the check that gated the tag is applied
+      # once more against the tag's own contents.
+      - name: The tag, package.json and plugin.php agree
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          bare="${VERSION#v}"
+          npm_version="$(node -p "require('./package.json').version")"
+          plugin_version="$(sed -n 's/^ \* Version: *//p' plugin.php | head -1 | tr -d '[:space:]')"
+
+          if [ "${npm_version}" != "${bare}" ] || [ "${plugin_version}" != "${bare}" ]; then
+            echo "::error::Version mismatch at tag ${VERSION}. package.json ${npm_version}, plugin.php ${plugin_version}."
+            exit 1
+          fi
+
+      # No NODE_AUTH_TOKEN: the credential comes from the OIDC exchange. If this
+      # step fails after the tag and release exist, re-run it with "Re-run failed
+      # jobs" on this run rather than cutting a new version.
+      - name: Publish
+        run: npm publish --access public
