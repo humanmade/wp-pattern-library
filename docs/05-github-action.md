@@ -80,9 +80,6 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    # Ships Chromium and its system dependencies preinstalled, which saves a
-    # minute or so of apt traffic on every run.
-    container: mcr.microsoft.com/playwright:v1.62.1-noble
 
     steps:
       - uses: actions/checkout@v7
@@ -94,7 +91,7 @@ jobs:
           node-version: 24
 
       - name: Build the pattern library
-        uses: humanmade/wp-pattern-library@v0.4.0
+        uses: humanmade/wp-pattern-library@v0.4.1
         with:
           site-url: ${{ vars.PATTERN_LIBRARY_SITE }}
           username: ${{ secrets.PATTERN_LIBRARY_WP_USER }}
@@ -124,9 +121,26 @@ To commit directly to a branch instead of opening a pull request, drop the last 
 | `output-path`       | no       | Overrides `outputDir` from the config file.           |
 | `working-directory` | no       | Where `pattern-library.config.js` lives. Default `.`. |
 | `extra-headers`     | no       | Headers for an origin behind an access proxy.         |
-| `version`           | no       | Version of the NPM package to run. Default `latest`.  |
+| `version`           | no       | Version of the NPM package to run. See below.         |
 
-Pin `version` to the same release as the action reference, so a run can't mix versions. Consuming workflows should pin the action to a released tag — there's deliberately no moving `@v1` tag while the package is pre-1.0.
+Leave `version` alone. By default the action runs the package version matching
+the ref it was used at, so `@v0.4.1` runs CLI 0.4.1 and the two cannot drift.
+Set it only to test an unreleased package against a released action. A branch or
+commit ref has no version to read and falls back to `latest`.
+
+Pin the action to a released tag — there's deliberately no moving `@v1` tag
+while the package is pre-1.0.
+
+## Chromium
+
+The action installs Chromium itself, matched to the Playwright version the CLI
+resolves. Nothing to configure, and nothing that goes stale.
+
+Running the job in `mcr.microsoft.com/playwright` is supported and saves the
+system-library half of that install, but it is only ever an optimisation: the
+image's own Chromium is used when its Playwright happens to match, and a
+matching build is fetched when it doesn't. Pick the image tag to suit the
+runner, not the CLI.
 
 ## Triggers
 
@@ -234,7 +248,7 @@ Send the proxy's credentials alongside the application password:
 
 ```yaml
       - name: Build the pattern library
-        uses: humanmade/wp-pattern-library@v0.4.0
+        uses: humanmade/wp-pattern-library@v0.4.1
         with:
           site-url: ${{ vars.PATTERN_LIBRARY_SITE }}
           username: ${{ secrets.PATTERN_LIBRARY_WP_USER }}
@@ -261,13 +275,13 @@ These headers go on the manifest request and on every browser request made **to 
 
 ## Running it elsewhere
 
-The action is a thin wrapper. The CLI is a plain Node program, so GitLab CI, Bitbucket Pipelines, Buildkite or a cron job on a box all work the same way: install Node 24 and Chromium, set the three environment variables, run `npx @humanmade/wp-pattern-library build`.
+The action is a thin wrapper. The CLI is a plain Node program, so GitLab CI, Bitbucket Pipelines, Buildkite or a cron job on a box all work the same way: install Node 24, run `npx playwright install --with-deps chromium` from the same install tree as the package, set the three environment variables, and run `npx @humanmade/wp-pattern-library build`.
 
 ## Troubleshooting
 
 **The run captures the wrong site.** `PATTERN_LIBRARY_SITE` is a repository variable, so it's visible in the workflow log — check what the run actually printed.
 
-**Chromium fails to install.** Use the `mcr.microsoft.com/playwright` container image, which ships it. The action skips its own install when it detects one.
+**Chromium fails to install.** The install needs `apt` and passwordless `sudo` for its system libraries, which GitHub-hosted runners provide and a locked-down self-hosted runner may not. Run the job in the `mcr.microsoft.com/playwright` image, which ships those libraries; the action detects it and skips the `apt` half.
 
 **The pull request is enormous.** Every screenshot changed, which usually means live content in query loops. See [screenshot churn]({{ site.baseurl }}/npm-package#troubleshooting).
 

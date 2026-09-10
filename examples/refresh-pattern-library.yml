@@ -39,9 +39,6 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    # Ships Chromium and its system dependencies preinstalled, which saves a
-    # minute or so of apt traffic on every run.
-    container: mcr.microsoft.com/playwright:v1.62.1-noble
 
     steps:
       - uses: actions/checkout@v7
@@ -53,7 +50,7 @@ jobs:
           node-version: 24
 
       - name: Build the pattern library
-        uses: humanmade/wp-pattern-library@v0.4.0
+        uses: humanmade/wp-pattern-library@v0.4.1
         with:
           site-url: ${{ inputs.site_url || vars.PATTERN_LIBRARY_SITE }}
           username: ${{ secrets.PATTERN_LIBRARY_WP_USER }}
