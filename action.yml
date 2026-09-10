@@ -26,20 +26,65 @@ inputs:
     required: false
     default: '.'
   version:
-    description: Version of @humanmade/wp-pattern-library to run.
+    description: >
+      Version of @humanmade/wp-pattern-library to run. Defaults to the ref this
+      action was used at, so `uses: humanmade/wp-pattern-library@v1.2.3` runs
+      CLI 1.2.3 and the two can never drift apart. A branch or commit ref has no
+      version to read, and falls back to `latest`.
     required: false
-    default: 'latest'
+    default: ''
 
 runs:
   using: composite
   steps:
-    # Playwright needs a browser. The official container image ships one, so skip
-    # the install when the workflow already runs in it.
+    # The CLI is resolved before the browser, and into a directory of its own.
+    #
+    # Its own, because the project being documented may depend on a different
+    # Playwright, and its node_modules is not this action's to write into.
+    #
+    # Before, because the browser that gets installed below has to match the
+    # Playwright this install resolves. Anything that guesses at that match
+    # ahead of time — a container image tag, a warm npx cache — is correct only
+    # until Playwright cuts its next minor release.
+    - name: Install the CLI
+      shell: bash
+      env:
+        REQUESTED_VERSION: ${{ inputs.version }}
+        ACTION_REF: ${{ github.action_ref }}
+      run: |
+        set -euo pipefail
+
+        version="${REQUESTED_VERSION}"
+        if [ -z "${version}" ]; then
+          case "${ACTION_REF}" in
+            v[0-9]*) version="${ACTION_REF#v}" ;;
+            *)       version="latest" ;;
+          esac
+        fi
+        echo "Running @humanmade/wp-pattern-library@${version}"
+
+        dir="${RUNNER_TEMP}/wp-pattern-library"
+        mkdir -p "${dir}"
+        cd "${dir}"
+        npm init --yes > /dev/null
+        npm install --no-audit --no-fund "@humanmade/wp-pattern-library@${version}"
+
+        echo "${dir}/node_modules/.bin" >> "${GITHUB_PATH}"
+
+    # Run from the CLI's tree, so `playwright` here is the one the CLI will
+    # load. --with-deps installs system libraries through apt, which needs sudo
+    # and a minute of network; the official Playwright image already has them
+    # and says so by exporting PLAYWRIGHT_BROWSERS_PATH.
     - name: Install Chromium
       shell: bash
       run: |
-        if [ -z "${PLAYWRIGHT_BROWSERS_PATH:-}" ] && [ ! -d "$HOME/.cache/ms-playwright" ]; then
-          npx --yes playwright install --with-deps chromium
+        set -euo pipefail
+
+        cd "${RUNNER_TEMP}/wp-pattern-library"
+        if [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ]; then
+          npx playwright install chromium
+        else
+          npx playwright install --with-deps chromium
         fi
 
     - name: Build the pattern library
@@ -51,11 +96,17 @@ runs:
         PATTERN_LIBRARY_WP_APP_PASSWORD: ${{ inputs.app-password }}
         # Passed through the environment, never interpolated into the script: these
         # carry secrets, and a value with a newline or a quote in it would otherwise
-        # be run as shell.
+        # be run as shell. OUTPUT_PATH is not a secret, but the same reasoning
+        # applies to any input a caller controls.
         PATTERN_LIBRARY_EXTRA_HEADERS: ${{ inputs.extra-headers }}
+        OUTPUT_PATH: ${{ inputs.output-path }}
       run: |
-        args=""
-        if [ -n "${{ inputs.output-path }}" ]; then
-          args="--output-dir=${{ inputs.output-path }}"
+        set -euo pipefail
+
+        # On PATH from the install step above, so this is the version resolved
+        # there rather than a second, independent resolution.
+        if [ -n "${OUTPUT_PATH}" ]; then
+          pattern-library build "--output-dir=${OUTPUT_PATH}"
+        else
+          pattern-library build
         fi
-        npx --yes @humanmade/wp-pattern-library@${{ inputs.version }} build $args

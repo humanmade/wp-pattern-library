@@ -121,3 +121,41 @@ jobs:
             echo "::error file=plugin.php::Version mismatch: package.json says ${npm_version}, plugin.php says ${plugin_version}."
             exit 1
           fi
+
+      # The action pins in the docs are what consumers copy, so a stale one
+      # quietly sends people to the previous release. This is the check that
+      # CONTRIBUTING.md used to ask a human to run by hand.
+      - name: The documented action pins name the current version
+        run: |
+          version="v$(node -p "require('./package.json').version")"
+
+          stale="$(git grep -n 'wp-pattern-library@v' \
+            -- README.md docs/05-github-action.md examples/ \
+            | grep -v "wp-pattern-library@${version}" || true)"
+
+          if [ -n "${stale}" ]; then
+            echo "::error::These action pins should read ${version}:"
+            echo "${stale}"
+            exit 1
+          fi
+
+      # The plugin writes the manifest and the CLI reads it. Their agreement is
+      # the one compatibility contract that is not the release version, and it
+      # otherwise surfaces only as a failed run in a consumer's repository.
+      - name: The manifest version the plugin writes is the one the CLI reads
+        run: |
+          php_version="$(sed -n "s/^const MANIFEST_VERSION = \([0-9]\+\);/\1/p" inc/manifest.php)"
+          js_version="$(sed -n "s/^const SUPPORTED_MANIFEST_VERSION = \([0-9]\+\);/\1/p" src/manifest.mjs)"
+
+          echo "inc/manifest.php:  ${php_version}"
+          echo "src/manifest.mjs:  ${js_version}"
+
+          if [ -z "${php_version}" ] || [ -z "${js_version}" ]; then
+            echo "::error::Could not read a manifest version from one of the pair; has a declaration been reformatted?"
+            exit 1
+          fi
+
+          if [ "${php_version}" != "${js_version}" ]; then
+            echo "::error file=src/manifest.mjs::Manifest version mismatch: the plugin writes ${php_version}, the CLI reads ${js_version}."
+            exit 1
+          fi

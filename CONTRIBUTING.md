@@ -244,30 +244,32 @@ matter. Keep the two in step.
 Releases are cut from `main`. One tag drives all three artifacts, so the
 versions have to agree before the tag exists.
 
-1. **Bump the version, in one commit.** Two of these are checked by CI, which
-   fails the pull request if they disagree. The other three are documentation,
-   and nothing will tell you if you forget them:
+1. **Bump the version, in one commit.** All five are checked by CI, which fails
+   the pull request if they disagree:
 
-   | File | What to change | Checked? |
-   | ---- | -------------- | -------- |
-   | `package.json` | `version` | yes |
-   | `plugin.php` | the `Version:` header | yes |
-   | `README.md` | the `uses: humanmade/wp-pattern-library@vX.Y.Z` pin | no |
-   | `docs/05-github-action.md` | the same pin, twice | no |
-   | `examples/refresh-pattern-library.yml` | the same pin | no |
+   | File | What to change |
+   | ---- | -------------- |
+   | `package.json` | `version` |
+   | `plugin.php` | the `Version:` header |
+   | `README.md` | the `uses: humanmade/wp-pattern-library@vX.Y.Z` pin |
+   | `docs/05-github-action.md` | the same pin, twice |
+   | `examples/refresh-pattern-library.yml` | the same pin |
 
    The action pins are what consumers copy, so a stale one sends people to the
-   previous release. List all four and check they read as the new version:
+   previous release. To see all four before pushing:
 
    ```bash
    git grep -n "wp-pattern-library@v" -- README.md docs/05-github-action.md examples/
    ```
 
+   The action itself needs no bump. It runs the package version matching the ref
+   it was used at, read from `github.action_ref` at run time.
+
    Then confirm nothing anywhere still names the version you bumped *from*.
    Substitute the old version; it should print no lines:
 
    ```bash
-   git grep -n "0\.3\.0" -- ':(exclude)package-lock.json' ':(exclude)composer.lock'
+   git grep -n "0\.4\.0" -- ':(exclude)package-lock.json' ':(exclude)composer.lock'
    ```
 2. **Merge to `main`.**
 3. **Run the [Tag and Release](../../actions/workflows/tag-and-release.yml)
