@@ -21,6 +21,7 @@ define( 'WP_TESTS_PHPUNIT_POLYFILLS_PATH', dirname( __DIR__, 2 ) . '/vendor/yoas
 $_tests_dir = getenv( 'WP_TESTS_DIR' ) ?: '/wordpress-phpunit';
 
 if ( ! file_exists( $_tests_dir . '/includes/functions.php' ) ) {
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
 	fwrite(
 		STDERR,
 		"Could not find the WordPress test library at {$_tests_dir}.\n" .
