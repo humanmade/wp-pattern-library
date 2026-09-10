@@ -25,7 +25,7 @@ Three separate packages ship from this repository, all from the same tag:
 | ---------------- | ------------------------------- | ----------------------------------------------- |
 | WordPress plugin | `humanmade/wp-pattern-library`  | `composer require humanmade/wp-pattern-library` |
 | CLI              | `@humanmade/wp-pattern-library` | `npm install -D @humanmade/wp-pattern-library`  |
-| GitHub Action    | `humanmade/wp-pattern-library`  | `uses: humanmade/wp-pattern-library@v0.4.1`     |
+| GitHub Action    | `humanmade/wp-pattern-library`  | `uses: humanmade/wp-pattern-library@v0.4.2`     |
 
 The plugin belongs on the site you capture from. The CLI runs wherever you generate the library — your machine, or CI — so the site itself never needs Node. The action is a thin wrapper around the CLI for running the whole thing in a workflow; pin it to a released tag, as there is deliberately no moving `@v1` tag while the package is pre-1.0.
 

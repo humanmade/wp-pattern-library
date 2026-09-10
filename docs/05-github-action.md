@@ -91,7 +91,7 @@ jobs:
           node-version: 24
 
       - name: Build the pattern library
-        uses: humanmade/wp-pattern-library@v0.4.1
+        uses: humanmade/wp-pattern-library@v0.4.2
         with:
           site-url: ${{ vars.PATTERN_LIBRARY_SITE }}
           username: ${{ secrets.PATTERN_LIBRARY_WP_USER }}
@@ -124,7 +124,7 @@ To commit directly to a branch instead of opening a pull request, drop the last 
 | `version`           | no       | Version of the NPM package to run. See below.         |
 
 Leave `version` alone. By default the action runs the package version matching
-the ref it was used at, so `@v0.4.1` runs CLI 0.4.1 and the two cannot drift.
+the ref it was used at, so `@v0.4.2` runs CLI 0.4.2 and the two cannot drift.
 Set it only to test an unreleased package against a released action. A branch or
 commit ref has no version to read and falls back to `latest`.
 
@@ -248,7 +248,7 @@ Send the proxy's credentials alongside the application password:
 
 ```yaml
       - name: Build the pattern library
-        uses: humanmade/wp-pattern-library@v0.4.1
+        uses: humanmade/wp-pattern-library@v0.4.2
         with:
           site-url: ${{ vars.PATTERN_LIBRARY_SITE }}
           username: ${{ secrets.PATTERN_LIBRARY_WP_USER }}
