@@ -6,6 +6,7 @@ import { chromium } from 'playwright';
 import sharp from 'sharp';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { hasCredentials } from './config.mjs';
 import { previewUrl, shotsFor } from './manifest.mjs';
 import { resolveAnimations } from './animations.mjs';
 
@@ -146,12 +147,11 @@ export async function captureAll( patterns, config, log = () => {} ) {
 		// preview route sends with its 401. `send: 'always'` is deliberately not
 		// used: it only affects Playwright's API request context, not page
 		// navigation. Scoped to the site's origin so the password is never attached
-		// to third-party requests a theme makes (fonts, analytics, CDNs).
-		httpCredentials: {
-			username: config.username,
-			password: config.appPassword,
-			origin,
-		},
+		// to third-party requests a theme makes (fonts, analytics, CDNs). Omitted
+		// when there are none, for a local site that serves the routes without.
+		httpCredentials: hasCredentials( config )
+			? { username: config.username, password: config.appPassword, origin }
+			: undefined,
 	} );
 
 	// Access-proxy headers gate the origin ahead of WordPress, so every request the

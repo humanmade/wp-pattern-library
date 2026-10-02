@@ -42,13 +42,8 @@ wp plugin activate wp-pattern-library
 add_filter( 'pattern_library_namespaces', fn () => [ 'my-theme/' ] );
 ```
 
-```bash
-# 3. Create an account for the generator. Prints an application password once.
-wp pattern-library setup --login=pattern-library-bot
-```
-
 ```js
-// 4. pattern-library.config.js, in your project root.
+// 3. pattern-library.config.js, in your project root.
 export default {
 	title: 'My Theme Pattern Library',
 	namespaces: [ 'my-theme/' ],
@@ -57,10 +52,8 @@ export default {
 ```
 
 ```bash
-# 5. Credentials come from the environment, never the config file.
+# 4. Point it at the site. A local environment needs no credentials.
 export PATTERN_LIBRARY_SITE="http://localhost:8888"
-export PATTERN_LIBRARY_WP_USER="pattern-library-bot"
-export PATTERN_LIBRARY_WP_APP_PASSWORD="xxxx xxxx xxxx xxxx"
 
 npx @humanmade/wp-pattern-library build --dry-run   # Look first.
 npx @humanmade/wp-pattern-library build             # Then capture.

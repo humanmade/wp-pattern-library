@@ -8,7 +8,8 @@
  *   pattern-library generate   Markdown only, from existing screenshots.
  *
  * Credentials come from PATTERN_LIBRARY_WP_USER and
- * PATTERN_LIBRARY_WP_APP_PASSWORD; the site from --site or PATTERN_LIBRARY_SITE.
+ * PATTERN_LIBRARY_WP_APP_PASSWORD, and are optional against a site whose
+ * environment type is `local`; the site from --site or PATTERN_LIBRARY_SITE.
  */
 
 import { loadConfig, requireConfig } from '../src/config.mjs';
@@ -69,7 +70,7 @@ async function main() {
 	const { site, dryRun, ...overrides } = options;
 	const config = await loadConfig( process.cwd(), { ...overrides, siteUrl: site } );
 
-	requireConfig( config, [ 'siteUrl', 'username', 'appPassword' ] );
+	requireConfig( config, [ 'siteUrl' ] );
 
 	const manifest = await fetchManifest( config );
 	const { patterns, skipped } = filterPatterns( manifest, config );

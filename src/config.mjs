@@ -80,7 +80,7 @@ const absolute = ( path, cwd ) => ( isAbsolute( path ) ? path : resolve( cwd, pa
  *
  * Precedence, lowest first: defaults, config file, environment, CLI overrides.
  * Credentials come from the environment only — they should never be committed to
- * a config file.
+ * a config file — and are optional: a local site needs none.
  *
  * @param {string} cwd       Directory to resolve the config and output paths from.
  * @param {Object} overrides Values from CLI flags.
@@ -122,6 +122,17 @@ export async function loadConfig( cwd = process.cwd(), overrides = {} ) {
 	};
 
 	config.variants = normalizeVariants( config.variants );
+
+	// Credentials are optional — a local site serves the routes without them —
+	// but half a pair is always a mistake, and would otherwise surface as a
+	// confusing 401 rather than naming the variable that is missing.
+	if ( Boolean( config.username ) !== Boolean( config.appPassword ) ) {
+		throw new Error(
+			`Configuration error: set both PATTERN_LIBRARY_WP_USER and PATTERN_LIBRARY_WP_APP_PASSWORD, or neither; only ${
+				config.username ? 'PATTERN_LIBRARY_WP_USER' : 'PATTERN_LIBRARY_WP_APP_PASSWORD'
+			} is set.`,
+		);
+	}
 
 	config.siteUrl = config.siteUrl.replace( /\/$/, '' );
 	config.outputDir = absolute( config.outputDir, cwd );
@@ -267,6 +278,17 @@ function clean( object ) {
 		),
 	);
 }
+
+/**
+ * Whether the configuration carries credentials to send to the site.
+ *
+ * Without them, requests go out unauthenticated. A site whose environment type
+ * is `local` serves the routes anyway; any other answers 401.
+ *
+ * @param {Object} config Resolved configuration.
+ * @return {boolean} Whether a login and application password are both set.
+ */
+export const hasCredentials = ( config ) => Boolean( config.username && config.appPassword );
 
 /**
  * Throw a helpful error when required configuration is missing.
