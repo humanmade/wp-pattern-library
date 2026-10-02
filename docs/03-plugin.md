@@ -22,7 +22,7 @@ The plugin belongs in whichever environment you capture *from*. If you only gene
 
 ### Enabling it temporarily
 
-Because the plugin is inert unless its query var is present, it's reasonable to activate it on a production site, capture, and deactivate again — for instance to document patterns that were built in the editor rather than committed to the theme. 
+Because the plugin is inert unless its query var is present, it's reasonable to activate it on a production site, capture, and deactivate again — for instance to document patterns that were built in the editor rather than committed to the theme.
 
 Nothing persists when deactivated except the role, and the routes can be switched off without deactivating:
 
@@ -42,7 +42,7 @@ Prefixes are matched literally, so keep the trailing slash. You can also filter 
 
 ## Access control
 
-When the environment type is `local`, the routes are open to any request — no account or password needed. Everywhere else, including `development`, which on Altis and VIP is a hosted environment reachable from the internet, they're gated as described below. To require authentication locally too:
+When the environment type is `local`, the routes are open to any request — no account or password needed. In all other environments, they're gated as described below. To require authentication locally too:
 
 ```php
 add_filter( 'pattern_library_allow_unauthenticated', '__return_false' );
@@ -72,7 +72,7 @@ add_filter( 'pattern_library_user_can', fn () => current_user_can( 'edit_theme_o
 
 ## The endpoints
 
-Both are query vars on `index.php`, on the front end. 
+Both are query vars on `index.php`, on the front end.
 
 | URL                                             | Returns                                   |
 | ----------------------------------------------- | ----------------------------------------- |
