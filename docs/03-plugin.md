@@ -42,7 +42,13 @@ Prefixes are matched literally, so keep the trailing slash. You can also filter 
 
 ## Access control
 
-The routes are gated behind `view_pattern_library`, a custom primitive capability. No built-in role holds it — administrators included. That's the point: the account that reads the library should hold that one capability and nothing else.
+When the environment type is `local`, the routes are open to any request — no account or password needed. Everywhere else, including `development`, which on Altis and VIP is a hosted environment reachable from the internet, they're gated as described below. To require authentication locally too:
+
+```php
+add_filter( 'pattern_library_allow_unauthenticated', '__return_false' );
+```
+
+Outside a local environment, the routes are gated behind `view_pattern_library`, a custom primitive capability. No built-in role holds it — administrators included. That's the point: the account that reads the library should hold that one capability and nothing else.
 
 ```bash
 wp pattern-library setup                            # Create the role.
@@ -79,7 +85,7 @@ Both are query vars on `index.php`, on the front end.
 
 A pattern renders in a minimal HTML document with `wp_head()` and `wp_footer()` intact, so the theme's real stylesheets, fonts and block styles load — but with no site header, footer or admin bar. The pattern is wrapped in `#pattern-library-preview`, which is what the capture tool crops to.
 
-Every response carries `X-Robots-Tag: noindex, nofollow` and cache-busting headers. An unauthenticated request gets a `401` with a `WWW-Authenticate` challenge.
+Every response carries `X-Robots-Tag: noindex, nofollow` and cache-busting headers. Outside a local environment, an unauthenticated request gets a `401` with a `WWW-Authenticate` challenge.
 
 | Query var                     | Purpose                                                        |
 | ----------------------------- | -------------------------------------------------------------- |
@@ -138,14 +144,15 @@ Keep the plugin and the CLI on the same version. They ship from one repository u
 
 ## Filters
 
-| Filter                              | Purpose                                   |
-| ----------------------------------- | ----------------------------------------- |
-| `pattern_library_enabled`           | Disable the routes entirely.              |
-| `pattern_library_namespaces`        | Pattern-name prefixes to expose.          |
-| `pattern_library_user_can`          | Override the capability check.            |
-| `pattern_library_placeholder_image` | Markup of the placeholder featured image. |
-| `pattern_library_wrapper_open`      | Opening markup of a variant wrapper.      |
-| `pattern_library_wrapper_close`     | Closing markup of a variant wrapper.      |
+| Filter                                  | Purpose                                                     |
+| --------------------------------------- | ----------------------------------------------------------- |
+| `pattern_library_enabled`               | Disable the routes entirely.                                |
+| `pattern_library_namespaces`            | Pattern-name prefixes to expose.                            |
+| `pattern_library_user_can`              | Override the capability check.                              |
+| `pattern_library_allow_unauthenticated` | Skip authentication; defaults to `local` environments only. |
+| `pattern_library_placeholder_image`     | Markup of the placeholder featured image.                   |
+| `pattern_library_wrapper_open`          | Opening markup of a variant wrapper.                        |
+| `pattern_library_wrapper_close`         | Closing markup of a variant wrapper.                        |
 
 Disable the routes outside development:
 

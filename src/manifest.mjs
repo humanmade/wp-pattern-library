@@ -2,6 +2,8 @@
  * Fetch and filter the site's pattern manifest.
  */
 
+import { hasCredentials } from './config.mjs';
+
 const SUPPORTED_MANIFEST_VERSION = 1;
 
 /**
@@ -56,12 +58,25 @@ export function authHeader( config ) {
  */
 export async function fetchManifest( config ) {
 	const url = previewUrl( config, '__manifest' );
+	const credentials = hasCredentials( config );
 	const response = await fetch( url, {
-		headers: { ...config.extraHeaders, Authorization: authHeader( config ) },
+		headers: {
+			...config.extraHeaders,
+			...( credentials ? { Authorization: authHeader( config ) } : {} ),
+		},
 		redirect: 'follow',
 	} );
 
 	const body = await response.text();
+
+	if ( response.status === 401 && ! credentials ) {
+		throw new Error(
+			`${ url } requires credentials (HTTP 401). Only a site whose WP_ENVIRONMENT_TYPE is ` +
+				'"local" serves the pattern library without them. Set PATTERN_LIBRARY_WP_USER and ' +
+				'PATTERN_LIBRARY_WP_APP_PASSWORD for a user holding the view_pattern_library capability; ' +
+				'`wp pattern-library setup --login=<login>` creates one.',
+		);
+	}
 
 	if ( response.status === 401 || response.status === 403 ) {
 		throw new Error(

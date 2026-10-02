@@ -108,6 +108,8 @@ Credentials and the site URL come from the environment:
 | `PATTERN_LIBRARY_WP_APP_PASSWORD` | That user's application password.          |
 | `PATTERN_LIBRARY_EXTRA_HEADERS`   | Extra headers, one `Name: value` per line. |
 
+The two credential variables are set together or not at all. Leave both unset against a site whose `WP_ENVIRONMENT_TYPE` is `local`, which serves the routes without authentication.
+
 ## Exclusions
 
 ```js

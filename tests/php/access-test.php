@@ -20,6 +20,7 @@ use const HM\Pattern_Library\QUERY_VAR;
 use const HM\Pattern_Library\ROLE;
 
 use function HM\Pattern_Library\allow_application_password;
+use function HM\Pattern_Library\allows_unauthenticated;
 use function HM\Pattern_Library\current_user_can_view;
 use function HM\Pattern_Library\is_preview_request;
 
@@ -27,6 +28,19 @@ use function HM\Pattern_Library\is_preview_request;
  * Cover the capability gate and the application-password opt-in.
  */
 class Access_Test extends WP_UnitTestCase {
+
+	/**
+	 * Close the local-environment bypass.
+	 *
+	 * The suite runs in wp-env, whose environment type is `local`, and core
+	 * caches the type for the life of the process. Without this every test of
+	 * the capability gate would pass through the bypass instead. Tests of the
+	 * bypass itself remove or replace the filter.
+	 */
+	public function set_up(): void {
+		parent::set_up();
+		add_filter( 'pattern_library_allow_unauthenticated', '__return_false' );
+	}
 
 	/**
 	 * Clear the query var between tests.
@@ -126,6 +140,39 @@ class Access_Test extends WP_UnitTestCase {
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
 		add_filter( 'pattern_library_user_can', '__return_false' );
 		$this->assertFalse( current_user_can_view() );
+	}
+
+	/**
+	 * Without a filter, the bypass follows the environment type, and opens only
+	 * for `local` — `development` is a hosted environment on Altis and VIP.
+	 */
+	public function test_the_bypass_defaults_to_local_environments_only(): void {
+		remove_filter( 'pattern_library_allow_unauthenticated', '__return_false' );
+
+		$this->assertSame( 'local' === wp_get_environment_type(), allows_unauthenticated() );
+	}
+
+	/**
+	 * With the bypass open, a logged-out request can read the library.
+	 */
+	public function test_the_bypass_admits_a_logged_out_request(): void {
+		add_filter( 'pattern_library_allow_unauthenticated', '__return_true', 11 );
+
+		$this->assertSame( 0, get_current_user_id() );
+		$this->assertTrue( current_user_can_view() );
+	}
+
+	/**
+	 * A project that wants authentication everywhere can still have it, and
+	 * pattern_library_user_can keeps the final word over the bypass.
+	 */
+	public function test_the_capability_filter_overrides_the_bypass(): void {
+		add_filter( 'pattern_library_allow_unauthenticated', '__return_true', 11 );
+		add_filter( 'pattern_library_user_can', '__return_false' );
+
+		$this->assertFalse( current_user_can_view() );
+
+		remove_filter( 'pattern_library_user_can', '__return_false' );
 	}
 
 	/**
