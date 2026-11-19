@@ -172,6 +172,29 @@ describe( 'fetchManifest', () => {
 		} );
 	} );
 
+	test( 'sends no Authorization header when no credentials are configured', async () => {
+		const fetchStub = stubFetch( { body: JSON.stringify( manifest ) } );
+
+		await fetchManifest( config( { username: '', appPassword: '' } ) );
+
+		assert.equal( 'Authorization' in fetchStub.calls[ 0 ].options.headers, false );
+	} );
+
+	test( 'explains a 401 to a request that sent no credentials', async () => {
+		stubFetch( { status: 401, body: 'Authentication required.' } );
+
+		await assert.rejects(
+			fetchManifest( config( { username: '', appPassword: '' } ) ),
+			( error ) => {
+				assert.match( error.message, /requires credentials/ );
+				assert.match( error.message, /WP_ENVIRONMENT_TYPE/ );
+				assert.match( error.message, /PATTERN_LIBRARY_WP_USER/ );
+				assert.doesNotMatch( error.message, /Authentication failed/ );
+				return true;
+			},
+		);
+	} );
+
 	test( 'points at an access proxy when HTML arrives instead of JSON', async () => {
 		stubFetch( { body: '<!DOCTYPE html><title>Sign in</title>', contentType: 'text/html' } );
 

@@ -9,7 +9,7 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, isAbsolute } from 'node:path';
 
-import { loadConfig, requireConfig, flatClassify } from '../../src/config.mjs';
+import { loadConfig, requireConfig, hasCredentials, flatClassify } from '../../src/config.mjs';
 
 const ENV_KEYS = [
 	'PATTERN_LIBRARY_SITE',
@@ -108,6 +108,24 @@ describe( 'loadConfig', () => {
 		assert.equal( config.siteUrl, 'https://example.com' );
 		assert.equal( config.username, 'bot' );
 		assert.equal( config.appPassword, 'abcd efgh' );
+		assert.equal( hasCredentials( config ), true );
+	} );
+
+	test( 'treats credentials as optional, for a local site that needs none', async () => {
+		process.env.PATTERN_LIBRARY_SITE = 'http://localhost:8888';
+
+		const config = await loadConfig( cwd );
+
+		assert.equal( hasCredentials( config ), false );
+	} );
+
+	test( 'rejects a login without a password, and a password without a login', async () => {
+		process.env.PATTERN_LIBRARY_WP_USER = 'bot';
+		await assert.rejects( loadConfig( cwd ), /PATTERN_LIBRARY_WP_APP_PASSWORD/ );
+
+		delete process.env.PATTERN_LIBRARY_WP_USER;
+		process.env.PATTERN_LIBRARY_WP_APP_PASSWORD = 'abcd efgh';
+		await assert.rejects( loadConfig( cwd ), /PATTERN_LIBRARY_WP_USER/ );
 	} );
 
 	test( 'lets the environment win over the config file, and CLI flags over both', async () => {

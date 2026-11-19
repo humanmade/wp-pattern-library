@@ -36,33 +36,7 @@ add_filter( 'pattern_library_namespaces', fn () => [ 'my-theme/' ] );
 
 Put this in your theme's `functions.php` or a small mu-plugin. The prefix is matched literally, so keep the trailing slash.
 
-## 3. Create an account for the generator
-
-The routes are gated behind a dedicated capability, `view_pattern_library`. A bundled WP-CLI command creates a role that holds it, plus a user in that role:
-
-```bash
-wp pattern-library setup --login=pattern-library-bot
-```
-
-It prints an application password once:
-
-```
-Store these as CI secrets — the password is not recoverable:
-  PATTERN_LIBRARY_WP_USER=pattern-library-bot
-  PATTERN_LIBRARY_WP_APP_PASSWORD=ExsLVnKTz0aSHpwTXGwBlTC7
-```
-
-Copy it now.
-
-{: .warning }
-
-> **Your own admin account won't work without a grant.** `view_pattern_library` is a custom capability, so no built-in role holds it — administrator included. To use an existing user instead of a bot account, run `wp pattern-library setup` and then `wp pattern-library grant <user>`.
-
-{: .note }
-
-> **Application passwords need HTTPS, or a local environment.** If the command warns that they're unavailable, set `WP_ENVIRONMENT_TYPE` to `local` in `wp-config.php`. Most local environments already do.
-
-## 4. Configure the generator
+## 3. Configure the generator
 
 In your project root — the repository, not the WordPress install — create `pattern-library.config.js`:
 
@@ -74,17 +48,17 @@ export default {
 };
 ```
 
-Credentials never go in this file. They come from the environment:
+Tell it where the site is:
 
 ```bash
 export PATTERN_LIBRARY_SITE="http://localhost:8888"
-export PATTERN_LIBRARY_WP_USER="pattern-library-bot"
-export PATTERN_LIBRARY_WP_APP_PASSWORD="ExsLVnKTz0aSHpwTXGwBlTC7"
 ```
 
 Use whatever URL you actually browse the site at. Plain HTTP and a port number are fine.
 
-## 5. Look before you leap
+No account or password is needed: when `WP_ENVIRONMENT_TYPE` is `local`, the plugin serves its routes to anyone. Most local environments set it already; if yours doesn't, set it in `wp-config.php`. Capturing any other environment takes credentials — see [access control]({{ site.baseurl }}/plugin#access-control).
+
+## 4. Look before you leap
 
 ```bash
 npx @humanmade/wp-pattern-library build --dry-run
@@ -102,7 +76,7 @@ Dry run — nothing written.
 
 A large "skipped" number is usually correct — patterns hidden from the inserter and template parts are excluded by default. See [exclusions]({{ site.baseurl }}/npm-package#exclusions).
 
-## 6. Capture a few patterns
+## 5. Capture a few patterns
 
 Before committing to a full run, try one. A bare argument filters by pattern basename:
 
@@ -123,7 +97,7 @@ Wrote /path/to/project/docs/pattern-library/README.md and 15 category pages.
 
 Open `docs/pattern-library/README.md` and click through. This is the moment to check that fonts loaded, images resolved, and nothing is cut off.
 
-## 7. Run the whole thing
+## 6. Run the whole thing
 
 ```bash
 npx @humanmade/wp-pattern-library build

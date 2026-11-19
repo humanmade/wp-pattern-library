@@ -86,9 +86,28 @@ function current_user_can_view(): bool {
 	/**
 	 * Filters whether the current user may read the pattern library.
 	 *
-	 * @param bool $can Whether the current user holds the capability.
+	 * @param bool $can Whether the current user holds the capability, or the
+	 *                  environment allows unauthenticated access.
 	 */
-	return (bool) apply_filters( 'pattern_library_user_can', current_user_can( CAPABILITY ) );
+	return (bool) apply_filters( 'pattern_library_user_can', current_user_can( CAPABILITY ) || allows_unauthenticated() );
+}
+
+/**
+ * Whether the routes are open to any request, authenticated or not.
+ *
+ * Only in a `local` environment, where provisioning a user and application
+ * password protects nothing. Not `development`: on Altis and VIP that names a
+ * hosted environment reachable from the internet.
+ */
+function allows_unauthenticated(): bool {
+	/**
+	 * Filters whether the pattern library routes skip authentication.
+	 *
+	 * Return false to require authentication in every environment.
+	 *
+	 * @param bool $allow Whether the environment type is `local`.
+	 */
+	return (bool) apply_filters( 'pattern_library_allow_unauthenticated', 'local' === wp_get_environment_type() );
 }
 
 /**
